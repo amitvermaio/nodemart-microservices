@@ -1,12 +1,13 @@
 import request from 'supertest';
 import express from 'express';
 import { register } from '../controllers/auth.controller.js';
+import { registerValidator } from '../middlewares/validator.middleware.js';
 import { connectDB, closeDB, clearDB } from './setup.js';
 import User from '../models/user.model.js';
 
 const app = express();
 app.use(express.json());
-app.post('/auth/register', register);
+app.post('/api/auth/register', registerValidator, register);
 
 describe('Auth Register Endpoint', () => {
   beforeAll(async () => {
@@ -21,7 +22,7 @@ describe('Auth Register Endpoint', () => {
     await clearDB();
   });
 
-  describe('POST /auth/register', () => {
+  describe('POST /api/auth/register', () => {
     it('should register a new user successfully', async () => {
       const newUser = {
         username: 'testuser',
@@ -31,12 +32,11 @@ describe('Auth Register Endpoint', () => {
       };
 
       const response = await request(app)
-        .post('/auth/register')
+        .post('/api/auth/register')
         .send(newUser)
         .expect(201);
 
       expect(response.body).toHaveProperty('message', 'User registered successfully');
-      expect(response.body).toHaveProperty('token');
       expect(response.body.user).toHaveProperty('id');
       expect(response.body.user).toHaveProperty('username', 'testuser');
       expect(response.body.user).toHaveProperty('email', 'test@example.com');
@@ -53,7 +53,7 @@ describe('Auth Register Endpoint', () => {
       };
 
       const response = await request(app)
-        .post('/auth/register')
+        .post('/api/auth/register')
         .send(newUser)
         .expect(201);
 
@@ -69,11 +69,11 @@ describe('Auth Register Endpoint', () => {
       };
 
       await request(app)
-        .post('/auth/register')
+        .post('/api/auth/register')
         .send(newUser)
         .expect(201);
 
-      const savedUser = await User.findOne({ email: 'test@example.com' });
+      const savedUser = await User.findOne({ email: 'test@example.com' }).select('+password');
       expect(savedUser.password).not.toBe('password123');
       expect(savedUser.password).toMatch(/^\$2[aby]/); // bcrypt hash pattern
     });
@@ -86,11 +86,14 @@ describe('Auth Register Endpoint', () => {
       };
 
       const response = await request(app)
-        .post('/auth/register')
+        .post('/api/auth/register')
         .send(incompleteUser)
         .expect(400);
 
-      expect(response.body).toHaveProperty('message', 'Missing required fields');
+      expect(response.body).toHaveProperty('errors');
+      expect(Array.isArray(response.body.errors)).toBe(true);
+      expect(response.body.errors.some(err => err.path === 'fullname')).toBe(true);
+      expect(response.body.errors.some(err => err.path === 'password')).toBe(true);
     });
 
     it('should return error if username already exists', async () => {
@@ -109,12 +112,12 @@ describe('Auth Register Endpoint', () => {
       };
 
       await request(app)
-        .post('/auth/register')
+        .post('/api/auth/register')
         .send(user1)
         .expect(201);
 
       const response = await request(app)
-        .post('/auth/register')
+        .post('/api/auth/register')
         .send(user2)
         .expect(409);
 
@@ -137,12 +140,12 @@ describe('Auth Register Endpoint', () => {
       };
 
       await request(app)
-        .post('/auth/register')
+        .post('/api/auth/register')
         .send(user1)
         .expect(201);
 
       const response = await request(app)
-        .post('/auth/register')
+        .post('/api/auth/register')
         .send(user2)
         .expect(409);
 
@@ -158,7 +161,7 @@ describe('Auth Register Endpoint', () => {
       };
 
       await request(app)
-        .post('/auth/register')
+        .post('/api/auth/register')
         .send(newUser)
         .expect(201);
 
@@ -177,32 +180,38 @@ describe('Auth Register Endpoint', () => {
       };
 
       const response = await request(app)
-        .post('/auth/register')
+        .post('/api/auth/register')
         .send(newUser)
         .expect(201);
 
-      const token = response.body.token;
-      expect(token).toBeDefined();
-      expect(typeof token).toBe('string');
-      expect(token.split('.')).toHaveLength(3); // JWT format: header.payload.signature
+      const cookies = response.headers['set-cookie'];
+      expect(Array.isArray(cookies)).toBe(true);
+      expect(cookies.some(cookie => cookie.startsWith('NodeMart_Token='))).toBe(true);
     });
 
     it('should return 400 if only username is provided', async () => {
       const response = await request(app)
-        .post('/auth/register')
+        .post('/api/auth/register')
         .send({ username: 'testuser' })
         .expect(400);
 
-      expect(response.body).toHaveProperty('message', 'Missing required fields');
+      expect(response.body).toHaveProperty('errors');
+      expect(response.body.errors.some(err => err.path === 'fullname')).toBe(true);
+      expect(response.body.errors.some(err => err.path === 'email')).toBe(true);
+      expect(response.body.errors.some(err => err.path === 'password')).toBe(true);
     });
 
     it('should handle empty request body', async () => {
       const response = await request(app)
-        .post('/auth/register')
+        .post('/api/auth/register')
         .send({})
         .expect(400);
 
-      expect(response.body).toHaveProperty('message', 'Missing required fields');
+      expect(response.body).toHaveProperty('errors');
+      expect(response.body.errors.some(err => err.path === 'username')).toBe(true);
+      expect(response.body.errors.some(err => err.path === 'fullname')).toBe(true);
+      expect(response.body.errors.some(err => err.path === 'email')).toBe(true);
+      expect(response.body.errors.some(err => err.path === 'password')).toBe(true);
     });
   });
 });

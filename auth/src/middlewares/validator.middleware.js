@@ -32,12 +32,20 @@ export const registerValidator = [
 
 export const loginValidator = [
   body('email')
+    .optional()
     .isEmail()
-    .withMessage('Invalid email address')
-    .notEmpty()
-    .withMessage('Email is required'),
+    .withMessage('Invalid email address'),
+  body('username')
+    .optional()
+    .isLength({ min: 3, max: 30 })
+    .withMessage('Username must be between 3 and 30 characters long'),
   body('password')
     .notEmpty()
     .withMessage('Password is required'),
-  validationResultHandler
+  (req, res, next) => {
+    if (!req.body.email && !req.body.username) {
+      return res.status(400).json({ message: 'Either email or username is required' });
+    }
+    validationResultHandler(req, res, next);
+  }
 ];
