@@ -27,6 +27,10 @@ export const registerValidator = [
   body('password')
     .isLength({ min: 6 })
     .withMessage('Password must be at least 6 characters long'),
+  body('role')
+    .optional()
+    .isIn(['user', 'seller'])
+    .withMessage('Role must be either user or seller'),
   validationResultHandler
 ]
 
@@ -48,4 +52,26 @@ export const loginValidator = [
     }
     validationResultHandler(req, res, next);
   }
+];
+
+export const addressValidator = [
+  body('street')
+    .notEmpty()
+    .withMessage('Street is required'),
+  body('city')
+    .notEmpty()
+    .withMessage('City is required'),
+  body('state')
+    .notEmpty()
+    .withMessage('State is required'),
+  body('pincode')
+    .notEmpty()
+    .withMessage('Pincode is required'),
+  body('country')
+    .notEmpty()
+    .withMessage('Country is required'),
+  body('phone')
+    .notEmpty()
+    .withMessage('Phone number is required'),
+  validationResultHandler
 ];

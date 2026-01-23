@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/user.model.js';
+import redis from '../config/redis.js';
 
 export const authenticate = async (req, res, next) => {
   try {
@@ -14,6 +15,12 @@ export const authenticate = async (req, res, next) => {
       decoded = jwt.verify(token, process.env.JWT_SECRET || 'test-secret');
     } catch (error) {
       return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    const isBlacklisted = await redis.get(`blacklist:${token}`);
+   
+    if (isBlacklisted) {
+      return res.status(401).json({ message: 'Token has been revoked' });
     }
 
     const user = await User.findById(decoded.id);

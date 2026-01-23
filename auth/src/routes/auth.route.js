@@ -1,5 +1,13 @@
 import express from 'express';
-import { register, login, getMe, logout } from '../controllers/auth.controller.js';
+import { 
+  register, 
+  login, 
+  getMe, 
+  logout, 
+  getUserAddresses, 
+  addUserAddress,
+  deleteUserAddress,
+} from '../controllers/auth.controller.js';
 import { registerValidator, loginValidator } from '../middlewares/validator.middleware.js';
 import { authenticate } from '../middlewares/auth.middleware.js';
 
@@ -16,5 +24,14 @@ router.get('/me', authenticate, getMe);
 
 // GET /api/auth/logout
 router.get('/logout', authenticate, logout);
+
+// GET /api/auth/users/me/addresses
+router.get('/users/me/addresses', authenticate, getUserAddresses);
+
+// POST /api/auth/users/me/addresses
+router.post('/users/me/addresses', authenticate, addUserAddress);
+
+// DELETE /api/auth/users/me/addresses/:addressId
+router.delete('/users/me/addresses/:addressId', authenticate, deleteUserAddress);
 
 export default router;

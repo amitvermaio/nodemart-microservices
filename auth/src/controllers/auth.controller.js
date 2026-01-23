@@ -133,3 +133,57 @@ export const logout = async (req, res) => {
   }
 };
 
+export const getUserAddresses = async (req, res) => {
+  try {
+    const user = req.user;
+    res.status(200).json({ addresses: user.addresses });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+export const addUserAddress = async (req, res) => {
+  try {
+    const user = req.user;
+    const { street, city, state, country, zip, isDefault } = req.body;
+
+    if (isDefault) {
+      user.addresses.forEach(address => address.isDefault = false);
+    }
+
+    user.addresses.push({ street, city, state, country, zip, isDefault: !!isDefault });
+    await user.save();
+    res.status(201).json({ message: 'Address added successfully', addresses: user.addresses });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+export const deleteUserAddress = async (req, res) => {
+  try {
+    const user = req.user;
+    const { addressId } = req.params;
+
+    const address = user.addresses.id(addressId);
+    if (!address) {
+      return res.status(404).json({ message: 'Address not found' });
+    }
+
+    const wasDefault = address.isDefault;
+
+    user.addresses.pull({ _id: addressId });
+
+    if (wasDefault && user.addresses.length > 0) {
+      user.addresses[0].isDefault = true;
+    }
+
+    await user.save();
+
+    res.status(200).json({
+      message: 'Address deleted successfully',
+      addresses: user.addresses,
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
