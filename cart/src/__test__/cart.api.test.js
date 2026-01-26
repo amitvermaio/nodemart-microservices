@@ -1,10 +1,22 @@
+import { jest } from '@jest/globals';
 import mongoose from 'mongoose';
-import request from 'supertest';
 import { MongoMemoryServer } from 'mongodb-memory-server';
-import app from '../app.js';
-import connectDB from '../config/db.js';
 
-const PRODUCT_ID = 'prod-1';
+const MOCK_USER_ID = '507f1f77bcf86cd799439011';
+const PRODUCT_ID = new mongoose.Types.ObjectId().toString();
+
+// Mock authentication middleware
+jest.unstable_mockModule('../middlewares/auth.middleware.js', () => ({
+  authenticate: () => (req, res, next) => {
+    req.user = { id: MOCK_USER_ID, role: 'user' };
+    next();
+  },
+}));
+
+// Dynamic imports
+const { default: app } = await import('../app.js');
+const { default: connectDB } = await import('../config/db.js');
+const { default: request } = await import('supertest');
 
 describe('Cart API', () => {
   let mongoServer;
@@ -16,40 +28,57 @@ describe('Cart API', () => {
   });
 
   afterEach(async () => {
-    const collections = mongoose.connection.collections;
-    await Promise.all(
-      Object.values(collections).map((collection) => collection.deleteMany({}))
-    );
+    if (mongoose.connection.readyState !== 0) {
+      const collections = mongoose.connection.collections;
+      await Promise.all(
+        Object.values(collections).map((collection) => collection.deleteMany({}))
+      );
+    }
   });
 
   afterAll(async () => {
     await mongoose.connection.close(true);
     await mongoServer.stop();
   });
-
-  describe('GET /api/cart', () => {
-    it('returns an empty cart with recalculated totals when nothing was added yet', async () => {
-      const response = await request(app).get('/api/cart');
+  
+  describe('GET /api/carts', () => {
+    it('returns an empty cart when nothing was added yet', async () => {
+      const response = await request(app).get('/api/carts');
 
       expect(response.statusCode).toBe(200);
-      expect(response.body).toEqual(
-        expect.objectContaining({
-          items: expect.any(Array),
-          totals: expect.any(Object),
-        })
+      expect(response.body.cart.items).toHaveLength(0);
+      expect(response.body.totals).toEqual({ itemCount: 0, totalQuantity: 0 });
+    });
+
+    it('returns the current cart with items', async () => {
+      // Add an item first
+      await request(app)
+        .post('/api/carts/items')
+        .send({ productId: PRODUCT_ID, quantity: 2 });
+      
+      const response = await request(app).get('/api/carts');
+
+      expect(response.statusCode).toBe(200);
+      expect(response.body.cart.items).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            productId: PRODUCT_ID,
+            quantity: 2
+          })
+        ])
       );
-      expect(response.body.items).toHaveLength(0);
+      expect(response.body.totals).toEqual({ itemCount: 1, totalQuantity: 2 });
     });
   });
 
-  describe('POST /api/cart/items', () => {
-    it('adds a new item and returns the refreshed cart totals', async () => {
+  describe('POST /api/carts/items', () => {
+    it('adds a new item', async () => {
       const createResponse = await request(app)
-        .post('/api/cart/items')
+        .post('/api/carts/items')
         .send({ productId: PRODUCT_ID, quantity: 2 });
 
-      expect(createResponse.statusCode).toBe(201);
-      expect(createResponse.body.items).toEqual(
+      expect(createResponse.statusCode).toBe(200);
+      expect(createResponse.body.cart.items).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             productId: PRODUCT_ID,
@@ -57,97 +86,105 @@ describe('Cart API', () => {
           }),
         ])
       );
-      expect(createResponse.body).toHaveProperty('totals');
-      expect(Object.values(createResponse.body.totals)).toEqual(
-        expect.arrayContaining([expect.any(Number)])
-      );
-
-      const fetchResponse = await request(app).get('/api/cart');
-      expect(fetchResponse.statusCode).toBe(200);
-      const storedItem = fetchResponse.body.items.find(
-        (item) => item.productId === PRODUCT_ID
-      );
-      expect(storedItem).toBeDefined();
-      expect(storedItem.quantity).toBe(2);
+      expect(createResponse.body.totals).toEqual({ itemCount: 1, totalQuantity: 2 });
     });
   });
 
-  describe('PATCH /api/cart/items/:productId', () => {
-    it('updates an item quantity and re-evaluates totals', async () => {
+  describe('PATCH /api/carts/items/:productId', () => {
+    it('updates an item quantity', async () => {
+      // First create an item
       await request(app)
-        .post('/api/cart/items')
+        .post('/api/carts/items')
         .send({ productId: PRODUCT_ID, quantity: 1 });
 
       const updateResponse = await request(app)
-        .patch(`/api/cart/items/${PRODUCT_ID}`)
+        .patch(`/api/carts/items/${PRODUCT_ID}`)
         .send({ quantity: 4 });
 
       expect(updateResponse.statusCode).toBe(200);
-      const updatedItem = updateResponse.body.items.find(
+      expect(updateResponse.body.message).toBe('Cart item updated successfully');
+      const updatedItem = updateResponse.body.cart.items.find(
         (item) => item.productId === PRODUCT_ID
       );
       expect(updatedItem).toBeDefined();
       expect(updatedItem.quantity).toBe(4);
-      expect(updateResponse.body).toHaveProperty('totals');
+      expect(updateResponse.body.totals).toEqual({ itemCount: 1, totalQuantity: 4 });
+    });
 
-      const dropResponse = await request(app)
-        .patch(`/api/cart/items/${PRODUCT_ID}`)
-        .send({ quantity: 0 });
+    it('returns 404 if item not in cart', async () => {
+        const OTHER_PRODUCT_ID = new mongoose.Types.ObjectId().toString();
+        // Create cart with one item
+        await request(app)
+            .post('/api/carts/items')
+            .send({ productId: PRODUCT_ID, quantity: 1 });
 
-      expect(dropResponse.statusCode).toBe(200);
-      const remaining = dropResponse.body.items.find(
-        (item) => item.productId === PRODUCT_ID
-      );
-      expect(remaining).toBeUndefined();
+        const updateResponse = await request(app)
+            .patch(`/api/carts/items/${OTHER_PRODUCT_ID}`)
+            .send({ quantity: 4 });
+
+        expect(updateResponse.statusCode).toBe(404);
+        expect(updateResponse.body.message).toBe('Item not found in cart');
     });
   });
-
-  describe('DELETE /api/cart/items/:productId', () => {
-    it('removes a line item and responds with the refreshed cart view', async () => {
+  
+  describe('DELETE /api/carts/items/:productId', () => {
+    it('removes an existing line item and recalculates totals', async () => {
       await request(app)
-        .post('/api/cart/items')
+        .post('/api/carts/items')
         .send({ productId: PRODUCT_ID, quantity: 3 });
 
-      const deleteResponse = await request(app).delete(
-        `/api/cart/items/${PRODUCT_ID}`
-      );
+      const deleteResponse = await request(app).delete(`/api/carts/items/${PRODUCT_ID}`);
 
-      expect(deleteResponse.statusCode).toBeGreaterThanOrEqual(200);
-      expect(deleteResponse.statusCode).toBeLessThan(300);
-      if (deleteResponse.statusCode === 204) {
-        const fetchResponse = await request(app).get('/api/cart');
-        const remainingItems = fetchResponse.body.items.filter(
-          (item) => item.productId === PRODUCT_ID
-        );
-        expect(remainingItems).toHaveLength(0);
-      } else {
-        expect(deleteResponse.body.items).toEqual(expect.any(Array));
-        const remainingItems = deleteResponse.body.items.filter(
-          (item) => item.productId === PRODUCT_ID
-        );
-        expect(remainingItems).toHaveLength(0);
-      }
+      expect(deleteResponse.statusCode).toBe(200);
+      expect(deleteResponse.body.message).toBe('Cart item removed successfully');
+      expect(deleteResponse.body.cart.items).toEqual([]);
+      expect(deleteResponse.body.totals).toEqual({ itemCount: 0, totalQuantity: 0 });
+    });
+
+    it('returns 404 when the cart does not exist', async () => {
+      const response = await request(app).delete(`/api/carts/items/${PRODUCT_ID}`);
+
+      expect(response.statusCode).toBe(404);
+      expect(response.body.message).toBe('Cart not found');
+    });
+
+    it('returns 404 when the item is absent from the cart', async () => {
+      await request(app)
+        .post('/api/carts/items')
+        .send({ productId: PRODUCT_ID, quantity: 1 });
+
+      const missingProductId = new mongoose.Types.ObjectId().toString();
+      const response = await request(app).delete(`/api/carts/items/${missingProductId}`);
+
+      expect(response.statusCode).toBe(404);
+      expect(response.body.message).toBe('Item not found in cart');
     });
   });
 
-  describe('DELETE /api/cart', () => {
-    it('clears the cart and yields an empty result', async () => {
+  describe('DELETE /api/carts', () => {
+    it('clears the cart and returns an empty representation', async () => {
       await request(app)
-        .post('/api/cart/items')
+        .post('/api/carts/items')
         .send({ productId: PRODUCT_ID, quantity: 2 });
 
-      const clearResponse = await request(app).delete('/api/cart');
+      const response = await request(app).delete('/api/carts');
 
-      expect(clearResponse.statusCode).toBeGreaterThanOrEqual(200);
-      expect(clearResponse.statusCode).toBeLessThan(300);
-      if (clearResponse.statusCode === 204) {
-        const fetchResponse = await request(app).get('/api/cart');
-        expect(fetchResponse.body.items).toHaveLength(0);
-        expect(fetchResponse.body).toHaveProperty('totals');
-      } else {
-        expect(clearResponse.body.items).toHaveLength(0);
-        expect(clearResponse.body).toHaveProperty('totals');
-      }
+      expect(response.statusCode).toBe(200);
+      expect(response.body.message).toBe('Cart cleared successfully');
+      expect(response.body.cart.items).toHaveLength(0);
+      expect(response.body.totals).toEqual({ itemCount: 0, totalQuantity: 0 });
+
+      const fetchResponse = await request(app).get('/api/carts');
+      expect(fetchResponse.body.cart.items).toHaveLength(0);
+    });
+
+    it('returns already empty response when no cart exists', async () => {
+      const response = await request(app).delete('/api/carts');
+
+      expect(response.statusCode).toBe(200);
+      expect(response.body.message).toBe('Cart already empty');
+      expect(response.body.cart.items).toHaveLength(0);
+      expect(response.body.totals).toEqual({ itemCount: 0, totalQuantity: 0 });
     });
   });
 });
