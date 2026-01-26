@@ -1,4 +1,4 @@
 import "dotenv/config";
 
-process.env.AZURE_STORAGE_CONNECTION_STRING = process.env.AZURE_STORAGE_CONNECTION_STRING || "UseDevelopmentStorage=true";
-process.env.AZURE_STORAGE_CONTAINER_NAME = process.env.AZURE_STORAGE_CONTAINER_NAME || "test-products";
+process.env.AZURE_STORAGE_CONNECTION_STRING = "UseDevelopmentStorage=true";
+process.env.AZURE_STORAGE_CONTAINER_NAME = "test-products";

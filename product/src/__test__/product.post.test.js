@@ -5,6 +5,10 @@ import request from "supertest";
 
 const mockUploadProductImage = jest.fn();
 const mockProductCreate = jest.fn();
+const mockAuthenticate = jest.fn(() => (req, res, next) => {
+  req.user = { id: "test-user-id", role: "seller" };
+  next();
+});
 
 jest.unstable_mockModule("../services/azureBlob.service.js", () => ({
   uploadProductImage: mockUploadProductImage,
@@ -12,6 +16,10 @@ jest.unstable_mockModule("../services/azureBlob.service.js", () => ({
 
 jest.unstable_mockModule("../models/product.model.js", () => ({
   default: { create: mockProductCreate },
+}));
+
+jest.unstable_mockModule("../middlewares/auth.middleware.js", () => ({
+  authenticate: mockAuthenticate,
 }));
 
 const app = (await import("../app.js")).default;
@@ -37,13 +45,13 @@ describe("POST /api/products", () => {
       _id: "67a1b15abf3b0c0012a7b5ac",
       title: "Test Product",
       description: "Test description",
-      seller: "507f1f77bcf86cd799439011",
+      seller: "test-user-id",
       price: { amount: 1200, currency: "USD" },
       category: ["electronics", "gadgets"],
       images: [
         {
           url: "https://example.com/blob",
-          thumbnail: "https://example.com/blob-thumb",
+          thumbnail: null,
           id: "blob-id",
         },
       ],
@@ -59,7 +67,7 @@ describe("POST /api/products", () => {
       .field("priceAmount", `${mockProduct.price.amount}`)
       .field("priceCurrency", mockProduct.price.currency)
       .field("category", mockProduct.category.join(","))
-      .attach("image", sampleImagePath);
+      .attach("images", sampleImagePath);
 
     expect(response.status).toBe(201);
     expect(mockUploadProductImage).toHaveBeenCalledWith(
@@ -90,7 +98,7 @@ describe("POST /api/products", () => {
       .field("priceAmount", "10");
 
     expect(response.status).toBe(400);
-    expect(response.body).toEqual({ message: "Product image is required" });
+    expect(response.body).toEqual({ message: "At least one product image is required" });
     expect(mockUploadProductImage).not.toHaveBeenCalled();
     expect(mockProductCreate).not.toHaveBeenCalled();
   });
