@@ -1,22 +1,24 @@
 import { Router } from 'express';
-import {
-	cancelOrder,
-	createOrder,
-	fetchMyOrders,
-	fetchOrderById,
-	fetchSellerOrders,
-	updateOrderAddress
-} from '../controllers/order.controller.js';
 import { authenticate } from '../middlewares/auth.middleware.js';
+import { addressValidator } from '../middlewares/validator.middleware.js';
+import { createOrder, getMyOrders, getOrderById, cancelOrder, updateAddress } from '../controllers/order.controller.js';
 const router = Router();
 
+router.use(authenticate([ 'user' ]));
 
-router.post('/', authenticate(['user']), createOrder);
-router.get('/me', authenticate(['user']), fetchMyOrders);
-router.get('/seller', authenticate(['seller']), fetchSellerOrders);
-router.get('/:id', authenticate(['user', 'seller']), fetchOrderById);
-router.post('/:id/cancel', authenticate(['user', 'seller']), cancelOrder);
-router.post('/:id/address', authenticate(['user', 'seller']), updateOrderAddress);
+/* POST /api/orders */
+router.post('/', addressValidator, createOrder);
 
+/* GET /api/orders/me */
+router.get('/me', getMyOrders);
+
+/* GET /api/orders/${orderId} */
+router.get('/:id', getOrderById);
+
+/* POST /api/orders/${orderId}/cancel */
+router.post('/:id/cancel', cancelOrder);
+
+/* PATCH /api/orders/${orderId}/address */
+router.patch('/:id/address', addressValidator, updateAddress);
 
 export default router;

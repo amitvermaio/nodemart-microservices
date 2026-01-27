@@ -11,6 +11,7 @@ const productSchema = new mongoose.Schema({
       default: "INR",
     }, 
   },
+  stock: { type: Number, default: 0 },
   seller: { type: mongoose.Schema.Types.ObjectId, required: true },
   images: [{ url: String, thumbnail: String, id: String }],  
   category: [String]

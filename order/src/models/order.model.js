@@ -6,7 +6,6 @@ const addressesSchema = new mongoose.Schema({
   state: String,
   zip: String,
   country: String,
-  isDefault: { type: Boolean, default: false },
 });
 
 const orderSchema = new mongoose.Schema({
@@ -25,8 +24,8 @@ const orderSchema = new mongoose.Schema({
     amount: { type: Number, required: true },
     currency: { type: String, required: true, enum: [ 'USD', 'INR' ], default: 'INR' }
   },
-  status: { type: String, enum: ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'], default: 'pending' },
-  shippingAddress: addressesSchema,
+  status: { type: String, enum: ['PENDING', 'CONFIRMED', 'SHIPPED', 'DELIVERED', 'CANCELLED'], default: 'PENDING' },
+  shippingAddress: { type: addressesSchema, required: true }
 }, { timestamps: true });
 
 const Order = mongoose.model('Order', orderSchema);

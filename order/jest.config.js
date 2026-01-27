@@ -1,8 +1,11 @@
 export default {
   testEnvironment: 'node',
-  rootDir: '.',
-  testMatch: ['<rootDir>/__tests__/**/*.test.js'],
+  transform: {},
+  testMatch: ['**/__tests__/**/*.test.js'],
   moduleFileExtensions: ['js', 'json'],
-  setupFilesAfterEnv: ['<rootDir>/tests/jest.setup.js'],
-  verbose: false
+  extensionsToTreatAsEsm: ['.js'],
+  setupFilesAfterEnv: ['<rootDir>/src/__tests__/jest.setup.js'],
+  haste: {
+    forceNodeFilesystemAPI: true,
+  },
 };
