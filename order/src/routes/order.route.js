@@ -1,9 +1,16 @@
 import { Router } from 'express';
 import { authenticate } from '../middlewares/auth.middleware.js';
-import { addressValidator } from '../middlewares/validator.middleware.js';
-import { createOrder, getMyOrders, getOrderById, cancelOrder, updateAddress } from '../controllers/order.controller.js';
+import { addressValidator, updateStatusValidator } from '../middlewares/validator.middleware.js';
+import { createOrder, getMyOrders, getOrderById, cancelOrder, updateAddress, updateOrderStatus } from '../controllers/order.controller.js';
 const router = Router();
 
+
+/* SELLER ROUTES */
+
+router.patch('/:id/status', authenticate([ 'seller' ]), updateStatusValidator, updateOrderStatus); 
+
+
+/* USER ROUTES */
 router.use(authenticate([ 'user' ]));
 
 /* POST /api/orders */

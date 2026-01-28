@@ -29,3 +29,10 @@ export const addressValidator = [
     .withMessage('Phone number is required'),
   validationResultHandler
 ];
+
+export const updateStatusValidator = [
+  body('status')
+    .isIn(['PENDING', 'SHIPPED', 'DELIVERED', 'CANCELLED'])
+    .withMessage('Invalid status value'),
+  validationResultHandler
+]
