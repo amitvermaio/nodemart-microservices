@@ -17,7 +17,7 @@ export const createPayment = async (req, res) => {
     const price = data.order.totalPrice;
 
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: price.amount,
+      amount: price.amount * 1000,
       currency: price.currency.toLowerCase(),
       payment_method_types: ['card'],
       metadata: { orderId },

@@ -25,8 +25,9 @@ export const addressValidator = [
     .notEmpty()
     .withMessage('Country is required'),
   body('phone')
-    .notEmpty()
-    .withMessage('Phone number is required'),
+    .notEmpty().withMessage('Phone number is required')
+    .isLength({ min: 10, max: 10 }).withMessage('Phone number must be 10 digits')
+    .isNumeric().withMessage('Phone number must contain only digits'),
   validationResultHandler
 ];
 

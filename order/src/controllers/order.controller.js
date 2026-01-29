@@ -34,7 +34,7 @@ export const createOrder = async (req, res) => {
       payableAmount += itemTotal;
 
       return {
-        productId: item.productId,
+        product: item.productId,
         quantity: item.quantity,
         price: {
           amount: itemTotal,
@@ -54,10 +54,13 @@ export const createOrder = async (req, res) => {
       shippingAddress: shippingAddress,
     });
 
+    await order.save();
+
     res.status(201).json({ message: 'Order created successfully', order });
 
   } catch (error) {
-    console.log("Error from create Order controller");
+    console.log("Error from create Order controller\n\n");
+    console.log(error);
     return res.status(500).json({ message: 'Internal Server Error' });
   }
 }
