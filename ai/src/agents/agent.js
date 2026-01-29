@@ -1,0 +1,42 @@
+import { StateGraph, MessagesAnnotation } from '@langchain/langgraph';
+import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
+import { ToolMessage, AIMessage, HumanMessage } from '@langchain/core/messages';
+import tools from './tools.js';
+
+const model = new ChatGoogleGenerativeAI({
+  model: 'gemini-2.5-flash',
+  temperature: 0.7,
+});
+
+const graph = new StateGraph(MessagesAnnotation)
+  .addNode("tools", async (state, config) => {
+    const lastMessage = state.messages[state.messages.length - 1];
+
+    const toolCall = lastMessage.tool_calls
+
+    const toolCallResult = await Promise.all(toolCall.map(async (call) => {
+      const tool = tools[ call.name ];
+
+      if (!tool) {
+        throw new Error(`Tool ${call.name} not found`);
+      }
+
+      const toolInput = call.args
+
+      const toolResult = await tool.invoke({ ...toolInput, token: config.metadata.token });
+
+      return new ToolMessage({
+        content: toolResult,
+        toolName: call.name,
+      });
+    }));
+
+    state.messages.push(...toolCallResult);
+
+    return state;
+  })
+  .addNode("chat", async (state, config) => {
+    const response = await model.invoke(state.messages, { tools: [ tools.searchProduct, tools.addProductToCart ] });
+    
+    state.messages.push(new AIMessage({ content: response.text, tool_calls: response.tool_calls }));
+  })

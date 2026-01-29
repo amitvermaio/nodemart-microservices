@@ -9,20 +9,23 @@ export const createPayment = async (req, res) => {
     req.headers.authorization?.split(' ')[1];
 
   try {
-    const { data } = await axios.get(`http://localhost:4003/api/orders/${orderId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      }
+    const { data } = await axios.get(
+      `http://localhost:4003/api/orders/${orderId}`,
+      { headers: { Authorization: `Bearer ${token}` } }
     );
 
     const price = data.order.totalPrice;
 
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: price.amount * 1000,
+      amount: Math.round(price.amount * 100),
       currency: price.currency.toLowerCase(),
-      payment_method_types: ['card'],
-      metadata: { orderId },
+      automatic_payment_methods: { enabled: true },
+      metadata: {
+        orderId,
+        userId: req.user.id,
+      },
     });
-
+    
     const payment = await Payment.create({
       order: orderId,
       stripeOrderId: paymentIntent.id,
