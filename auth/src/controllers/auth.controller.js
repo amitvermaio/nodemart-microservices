@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from '../models/user.model.js';
 import redis from '../config/redis.js';
+import { publishToQueue } from '../broker/broker.js';
 
 const cookieOptions = {
   httpOnly: true,
@@ -34,6 +35,13 @@ export const register = async (req, res) => {
     });
 
     await user.save();
+
+    await publishToQueue('AUTH_NOTIFICATION.USER_CREATED', {
+      id: user._id,
+      username: user.username,
+      email: user.email,
+      fullname: user.fullname
+    });
 
     const token = jwt.sign(
       { id: user._id, role: user.role },
