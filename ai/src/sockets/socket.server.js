@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { parse } from "cookie";
 import { Server } from "socket.io";
 import jwt from 'jsonwebtoken';
+import agent from '../agents/agent.js';
 
 let io;
 
@@ -20,9 +21,23 @@ export const initSocketServer = async (httpServer) => {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       socket.user = decoded;
+      socket.token = token;
       next();
     } catch (error) {
       throw new Error("Authentication error: Invalid token");
     }
+  });
+
+  io.on("connection", (socket) => {
+    socket.on("message", async (data) => {
+      const agentResponse = await agent.invoke(
+        { messages: [{ role: 'user', content: data }] },
+        { metadata: { token: socket.token } }
+      );
+      
+      const lastMessage = agentResponse.messages[agentResponse.messages.length - 1];
+
+      socket.emit("message", lastMessage.content);
+    })
   });
 } 
