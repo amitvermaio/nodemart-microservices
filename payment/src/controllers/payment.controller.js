@@ -1,6 +1,7 @@
 import Payment from '../models/payment.model.js';
 import axios from 'axios';
 import { stripe } from '../config/stripe.js';
+import { publishToQueue } from '../broker/broker.js';
 
 export const createPayment = async (req, res) => {
   const { orderId } = req.params;
@@ -57,6 +58,13 @@ export const verifyPayment = async (req, res) => {
         { stripeOrderId: paymentIntentId },
         { status: 'SUCCESS' }
       );
+
+      await publishToQueue('PAYMENT_NOTIFICATION.PAYMENT_COMPLETED', {
+        paymentId: payment._id,
+        orderId,
+        amount: price,
+        userId: req.user.id,
+      });
 
       return res.json({ success: true });
     }

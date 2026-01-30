@@ -20,7 +20,7 @@ export const register = async (req, res) => {
     });
 
     if (existingUser) {
-      return res.status(409).json({ message: 'User already exists' });
+      return res.status(409).json({ message: 'User with this email or username already exists' });
     }
 
     const salt = await bcrypt.genSalt(10);
