@@ -1,4 +1,5 @@
 import { ArrowRightIcon } from '@heroicons/react/24/outline';
+import { Link } from 'react-router-dom';
 
 const posts = [
   {
@@ -42,10 +43,10 @@ const BlogSection = () => {
               and ship meaningful products.
             </p>
           </div>
-          <button className="hidden sm:inline-flex items-center gap-2 text-cyan-400 hover:text-cyan-300 transition-colors group font-body text-sm">
+          <Link to="/blogs" className="hidden sm:inline-flex items-center gap-2 text-cyan-400 hover:text-cyan-300 transition-colors group font-body text-sm">
             Visit blog
             <ArrowRightIcon className="size-4 group-hover:translate-x-1 transition-transform" />
-          </button>
+          </Link>
         </div>
 
         <div className="grid md:grid-cols-3 gap-6">
