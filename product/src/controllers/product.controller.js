@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import Product from "../models/product.model.js";
 import { uploadProductImage } from "../services/azureBlob.service.js";
+import { publishToQueue } from '../broker/broker.js';
 
 const normalizeCategory = (value) => {
   if (!value) {
@@ -61,6 +62,9 @@ export const createProduct = async (req, res, next) => {
     };
 
     const createdProduct = await Product.create(productPayload);
+
+    await publishToQueue('PRODUCT_SELLER_DASHBOARD.PRODUCT_CREATED', createProduct);
+
     return res.status(201).json({ data: createdProduct });
   } catch (error) {
     return next(error);

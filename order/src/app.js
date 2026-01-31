@@ -9,5 +9,8 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 app.use('/api/orders', orderRoutes);
+app.get('/health', (req, res) => {
+  res.status(200).send('Order Service is healthy');
+});
 
 export default app;

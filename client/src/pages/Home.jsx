@@ -2,9 +2,11 @@ import HeroCarouselSection from '../components/landing/HeroCarouselSection';
 import HighlightSection from '../components/landing/HighlightSection';
 import FeaturesSection from '../components/landing/FeaturesSection';
 import ProductsSection from '../components/landing/ProductsSection';
+import CategoriesSection from '../components/landing/CategoriesSection';
 import BlogSection from '../components/landing/BlogSection';
 import NewsletterSection from '../components/landing/NewsletterSection';
 import FooterSection from '../components/FooterSection';
+
 
 const Home = () => {
   return (
@@ -12,6 +14,7 @@ const Home = () => {
       <HeroCarouselSection />
       <HighlightSection />
       <ProductsSection />
+      <CategoriesSection />
       <FeaturesSection />
       <BlogSection />
       <NewsletterSection />

@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 
-const authenticate = (roles = [ 'user' ]) => (req, res, next) => {
+const authenticate = (roles = [ 'seller' ]) => (req, res, next) => {
   const token = req.cookies['NodeMart_Token'] || req.header('Authorization')?.replace('Bearer ', '');
   if (!token) {
     return res.status(401).json({ message: 'Authentication token is missing' });

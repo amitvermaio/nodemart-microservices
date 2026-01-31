@@ -22,7 +22,7 @@ const slides = [
     primaryCta: 'Explore Node kits',
     secondaryCta: 'View documentation',
     image:
-      'https://images.unsplash.com/photo-1763568258752-fe55f4ab7267?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MzN8fGN1cmF0ZWQlMjBub2RlanMlMjBzdGFydGVyJTIwa2l0fGVufDB8fDB8fHww',
+      'https://i.pinimg.com/736x/24/68/a1/2468a19e048308eabf19eabc4a2ce7a7.jpg',
   },
   {
     id: 3,
@@ -33,7 +33,7 @@ const slides = [
     primaryCta: 'Discover maker tools',
     secondaryCta: 'See community picks',
     image:
-      'https://images.unsplash.com/photo-1698934688661-522c99f4c98f?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MzZ8fGN1cmF0ZWQlMjBub2RlanMlMjBzdGFydGVyJTIwa2l0fGVufDB8fDB8fHww',
+      'https://i.pinimg.com/736x/fd/6a/06/fd6a0666e73507906b0d22eaa3e8ab43.jpg',
   },
 ];
 

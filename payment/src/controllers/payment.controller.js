@@ -35,6 +35,8 @@ export const createPayment = async (req, res) => {
       status: 'PENDING',
     });
 
+    await publishToQueue('PAYMENT_SELLER_DASHBOARD.PAYMENT_CREATED', payment);
+
     res.status(200).json({
       clientSecret: paymentIntent.client_secret,
       paymentId: payment._id,
@@ -53,18 +55,15 @@ export const verifyPayment = async (req, res) => {
   try {
     const intent = await stripe.paymentIntents.retrieve(paymentIntentId);
 
+    let payment;
     if (intent.status === 'succeeded') {
-      await Payment.findOneAndUpdate(
+      payment = await Payment.findOneAndUpdate(
         { stripeOrderId: paymentIntentId },
-        { status: 'SUCCESS' }
+        { status: 'SUCCESS' },
+        { new: true }
       );
 
-      await publishToQueue('PAYMENT_NOTIFICATION.PAYMENT_COMPLETED', {
-        paymentId: payment._id,
-        orderId,
-        amount: price,
-        userId: req.user.id,
-      });
+      await publishToQueue('PAYMENT_SELLER_DASHBOARD.PAYMENT_UPDATED', payment);
 
       return res.json({ success: true });
     }

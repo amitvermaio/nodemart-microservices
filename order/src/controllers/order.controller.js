@@ -1,5 +1,6 @@
 import Order from '../models/order.model.js';
 import axios from 'axios';
+import { publishToQueue } from '../broker/broker.js';
 
 export const createOrder = async (req, res) => {
   const user = req.user;
@@ -55,6 +56,8 @@ export const createOrder = async (req, res) => {
     });
 
     await order.save();
+
+    await publishToQueue('ORDER_SELLER_DASHBOARD.ORDER_CREATED', order);
 
     res.status(201).json({ message: 'Order created successfully', order });
 

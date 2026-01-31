@@ -15,7 +15,7 @@ const productSchema = new mongoose.Schema({
   seller: { type: mongoose.Schema.Types.ObjectId, required: true },
   images: [{ url: String, thumbnail: String, id: String }],  
   category: [String]
-});
+}, { timestamps: true });
 
 productSchema.index({ title: "text", description: "text", category: "text" });
 
