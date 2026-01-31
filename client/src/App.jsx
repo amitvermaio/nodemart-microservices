@@ -1,5 +1,6 @@
 import { Routes, Route } from 'react-router-dom';
 import { useEffect } from 'react';
+import { socket } from './socket';
 import { useDispatch, useSelector } from 'react-redux';
 import Home from './pages/Home';
 import AppLayout from './components/AppLayout';
@@ -16,15 +17,36 @@ import AddProduct from './pages/AddProduct';
 import Signup from './components/auth/Signup';
 import Signin from './components/auth/Signin';
 import NotFound from './pages/NotFound';
+import { setsocketconnected } from './store/reducers/authSlice';
+import { asyncloaduser } from './store/actions/authActions';
 
 const App = () => {
 
-  const { isAuthenticated, user, status } = useSelector(state => state.auth);
   const dispatch = useDispatch();
+  const { user, status, isAuthenticated } = useSelector(state => state.auth);
 
-  // useEffect(() => {
-  //   if (!user && status)
-  // }, []);
+  useEffect(() => {
+    if (!user && status === 'idle') {
+      dispatch(asyncloaduser());
+    }
+  }, [dispatch, user, status]);
+
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      socket.connect();
+
+      socket.on('connect', () => {
+        dispatch(setsocketconnected(true));
+        console.log('Connected to WebSocket server');
+      });
+    }
+
+    return () => {
+      socket.off('connect');
+      dispatch(setsocketconnected(false));
+      socket.disconnect();
+    };
+  }, [isAuthenticated, user]);
 
   return (
     <Routes>

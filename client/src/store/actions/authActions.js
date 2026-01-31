@@ -44,6 +44,7 @@ export const asyncloaduser = () => async (dispatch) => {
     dispatch(setauthsuccess(data?.user));
   } catch (error) {
     const message = error.response?.data?.message || 'Failed to load user';
+    toast.error(message);
     dispatch(setautherror(message));
   }
 };

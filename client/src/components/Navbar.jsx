@@ -22,6 +22,9 @@ export default function Navbar() {
     { label: 'Support', to: '/support' }
   ];
 
+  const capitalize = (str = '') => str.charAt(0).toUpperCase() + str.slice(1);
+
+
   useEffect(() => {
     const loadAddress = () => {
       try {
@@ -102,11 +105,11 @@ export default function Navbar() {
                   className="flex items-center gap-2 px-2 sm:px-3 py-1.5 hover:bg-zinc-900 rounded-full transition-colors"
                 >
                   <div className="size-8 rounded-full bg-zinc-800 flex items-center justify-center text-sm font-heading text-white">
-                    {(user?.fullName || user?.username || 'N').charAt(0).toUpperCase()}
+                    {(user?.fullname || user?.username || 'N').charAt(0).toUpperCase()}
                   </div>
                   <div className="hidden sm:flex flex-col items-start">
                     <span className="font-body text-xs font-semibold text-white">
-                      {user?.fullName || user?.username || 'Guest'}
+                      {capitalize(user?.fullname || user?.username || 'Guest')}
                     </span>
                     <span className="font-body text-[10px] text-zinc-500">
                       {defaultAddress
@@ -121,10 +124,10 @@ export default function Navbar() {
                   <div className="absolute right-0 mt-2 w-56 bg-zinc-950 border border-zinc-800 rounded-lg shadow-lg py-2 z-50">
                     <div className="flex items-center gap-3 px-3 py-2 border-b border-zinc-800">
                       <div className="size-9 rounded-full bg-zinc-800 flex items-center justify-center text-sm font-heading text-white">
-                        {(user?.fullName || user?.username || 'N').charAt(0).toUpperCase()}
+                        {(user?.fullname || user?.username || 'N').charAt(0).toUpperCase()}
                       </div>
                       <div>
-                        <p className="font-body text-xs font-semibold text-white">{user?.fullName || user?.username || 'Guest'}</p>
+                        <p className="font-body text-xs font-semibold text-white">{user?.fullname || user?.username || 'Guest'}</p>
                         {user?.email && (
                           <p className="font-body text-[10px] text-zinc-500">{user.email}</p>
                         )}
@@ -147,9 +150,6 @@ export default function Navbar() {
                     </button>
                     <button className="w-full text-left px-4 py-2 font-body text-xs text-zinc-300 hover:bg-zinc-900">
                       Seller Dashboard
-                    </button>
-                    <button className="w-full text-left px-4 py-2 font-body text-xs text-zinc-300 hover:bg-zinc-900">
-                      Settings
                     </button>
                     <div className="border-t border-zinc-800 mt-1 pt-1">
                       <button className="w-full text-left px-4 py-2 font-body text-xs text-red-400 hover:bg-red-950/40 hover:text-red-300">

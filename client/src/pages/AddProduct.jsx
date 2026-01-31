@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { productApi } from '../api/axios';
 
-const CATEGORY_OPTIONS = ['Accessories', 'Clothing', 'Audio', 'Lighting', 'Desk', 'Bundles'];
+const CATEGORY_OPTIONS = ['Accessories', 'Clothing', 'Audio', 'Lighting', 'Desk', 'Bundles', 'Learning', 'Posters'];
 
 const AddProduct = () => {
   const navigate = useNavigate();
@@ -39,7 +40,7 @@ const AddProduct = () => {
     setImageFiles((prev) => prev.filter((_, index) => index !== indexToRemove));
   };
 
-  const onSubmit = (data) => {
+  const onSubmit = async (data) => {
     const selectedCategories = data.categories
       ? Array.isArray(data.categories)
         ? data.categories
@@ -74,8 +75,11 @@ const AddProduct = () => {
       formData.append('images', file);
     });
 
-    // For now, just indicate success. Later, send formData to the backend API.
-    toast.success('Draft product FormData created');
+    const res = await productApi.post('/', formData);
+    if (res.status === 201) {
+      
+      toast.success('Product Added Successfully!');
+    }
 
     reset();
     setImageFiles([]);

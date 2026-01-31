@@ -1,4 +1,4 @@
-import apiClient from '../apiClient';
+import { productApi } from '../../api/axios';
 import {
   setproductsloading,
   setproducts,
@@ -16,7 +16,7 @@ export const asyncfetchproducts = ({ q, minprice, maxprice, skip = 0, limit = 20
     params.skip = skip;
     params.limit = limit;
 
-    const { data } = await apiClient.get('/api/products', { params });
+    const { data } = await productApi.get('/', { params });
     const items = data?.data || [];
     const hasMore = Array.isArray(items) && items.length === limit;
 
@@ -42,7 +42,7 @@ export const asyncfetchproducts = ({ q, minprice, maxprice, skip = 0, limit = 20
 export const asyncfetchproductbyid = (id) => async (dispatch) => {
   try {
     dispatch(setproductsloading());
-    const { data } = await apiClient.get(`/api/products/${id}`);
+    const { data } = await productApi.get(`/${id}`);
     dispatch(setproduct(data?.product || data || null));
   } catch (error) {
     const message = error.response?.data?.message || 'Failed to load product';

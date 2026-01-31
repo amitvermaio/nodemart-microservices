@@ -29,6 +29,12 @@ module.exports = {
       cwd: "./cart",
       script: "server.js",
       watch: true,
+    },
+    {
+      name: "ai",
+      cwd: "./ai",
+      script: "server.js",
+      watch: true,
     }
   ]
 };

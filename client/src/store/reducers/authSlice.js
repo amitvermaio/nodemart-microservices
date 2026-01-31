@@ -6,6 +6,7 @@ const initialState = {
   error: null,
   isAuthenticated: false,
   role: null,
+  socketConnected: false,
 };
 
 const authSlice = createSlice({
@@ -26,6 +27,9 @@ const authSlice = createSlice({
       state.status = 'failed';
       state.error = action.payload || null;
     },
+    setsocketconnected: (state, action) => {
+      state.socketConnected = action.payload;
+    },
     clearuser: (state) => {
       state.user = null;
       state.status = 'idle';
@@ -35,6 +39,6 @@ const authSlice = createSlice({
     },
   },
 });
-export const { setauthloading, setauthsuccess, setautherror, clearuser } = authSlice.actions;
+export const { setauthloading, setauthsuccess, setautherror, clearuser, setsocketconnected } = authSlice.actions;
 
 export default authSlice.reducer;
