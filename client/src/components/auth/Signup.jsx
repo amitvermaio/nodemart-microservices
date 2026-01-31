@@ -1,25 +1,33 @@
 import { useForm } from 'react-hook-form';
-import { Link } from 'react-router-dom';
-import { toast } from 'sonner';
+import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
+import { useDispatch } from 'react-redux';
+import { asyncregisteruser } from '../../store/actions/authActions';
 import FooterSection from '../FooterSection';
 
 const Signup = () => {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm({
     defaultValues: {
-      fullName: '',
+      fullname: '',
       username: '',
       email: '',
       password: '',
+      role: 'user',
     },
   });
 
-  const onSubmit = () => {
-    toast.success('Account created (demo only)');
+  const onSubmit = async (data) => {
+    const result = await dispatch(asyncregisteruser(data));
+    if (result) {
+      navigate('/');
+    }
   };
 
   return (
@@ -60,12 +68,12 @@ const Signup = () => {
                 </label>
                 <input
                   type="text"
-                  {...register('fullName', { required: 'Full name is required' })}
+                  {...register('fullname', { required: 'Full name is required' })}
                   className="w-full rounded-lg border border-zinc-800 bg-zinc-950/80 px-3 py-2 text-xs text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-cyan-500/70"
                   placeholder="Ada Lovelace"
                 />
-                {errors.fullName && (
-                  <p className="text-[11px] text-red-400 mt-0.5">{errors.fullName.message}</p>
+                {errors.fullname && (
+                  <p className="text-[11px] text-red-400 mt-0.5">{errors.fullname.message}</p>
                 )}
               </div>
 
@@ -117,6 +125,39 @@ const Signup = () => {
                 />
                 {errors.password && (
                   <p className="text-[11px] text-red-400 mt-0.5">{errors.password.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-[11px] font-medium text-zinc-300">
+                  Account type
+                </label>
+                <div className="flex items-center gap-4 text-[11px] text-zinc-300">
+                  <label className="inline-flex items-center gap-1.5 cursor-pointer">
+                    <input
+                      type="radio"
+                      value="user"
+                      {...register('role', { required: 'Please choose an account type' })}
+                      className="h-3 w-3 rounded border-zinc-700 bg-zinc-950 text-cyan-500 focus:ring-cyan-500/70"
+                    />
+                    <span>User</span>
+                  </label>
+                  <label className="inline-flex items-center gap-1.5 cursor-pointer">
+                    <input
+                      type="radio"
+                      value="seller"
+                      {...register('role', { required: 'Please choose an account type' })}
+                      className="h-3 w-3 rounded border-zinc-700 bg-zinc-950 text-cyan-500 focus:ring-cyan-500/70"
+                    />
+                    <span>Seller</span>
+                  </label>
+                </div>
+                <p className="mt-1 text-[10px] text-amber-300 font-medium">
+                  To buy products on NodeMart, please select the <span className="underline">User</span> role.
+                  Sellers are not allowed to buy products on this platform.
+                </p>
+                {errors.role && (
+                  <p className="text-[11px] text-red-400 mt-0.5">{errors.role.message}</p>
                 )}
               </div>
 

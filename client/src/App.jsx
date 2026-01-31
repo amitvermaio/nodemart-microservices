@@ -1,4 +1,6 @@
 import { Routes, Route } from 'react-router-dom';
+import { useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import Home from './pages/Home';
 import AppLayout from './components/AppLayout';
 import Shop from './pages/Shop';
@@ -16,6 +18,14 @@ import Signin from './components/auth/Signin';
 import NotFound from './pages/NotFound';
 
 const App = () => {
+
+  const { isAuthenticated, user, status } = useSelector(state => state.auth);
+  const dispatch = useDispatch();
+
+  // useEffect(() => {
+  //   if (!user && status)
+  // }, []);
+
   return (
     <Routes>
       <Route element={<AppLayout />}>

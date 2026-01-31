@@ -28,7 +28,8 @@ export const registerValidator = [
     .isLength({ min: 6 })
     .withMessage('Password must be at least 6 characters long'),
   body('role')
-    .optional()
+    .notEmpty()
+    .withMessage('Role is required')
     .isIn(['user', 'seller'])
     .withMessage('Role must be either user or seller'),
   validationResultHandler

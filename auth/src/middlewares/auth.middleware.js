@@ -14,6 +14,7 @@ export const authenticate = async (req, res, next) => {
     try {
       decoded = jwt.verify(token, process.env.JWT_SECRET || 'test-secret');
     } catch (error) {
+      res.clearCookie('NodeMart_Token');
       return res.status(401).json({ message: 'Invalid token' });
     }
 

@@ -1,4 +1,5 @@
-import apiClient from '../apiClient';
+import { toast } from 'sonner';
+import { authApi } from '../../api/axios';
 import {
   setauthloading,
   setauthsuccess,
@@ -6,33 +7,41 @@ import {
   clearuser,
 } from '../reducers/authSlice';
 
+
 export const asyncregisteruser = (payload) => async (dispatch) => {
   try {
     dispatch(setauthloading());
-    const { data } = await apiClient.post('/api/auth/register', payload);
-    dispatch(setauthsuccess(data?.user || data));
+    const { data } = await authApi.post('/register', payload);
+    dispatch(setauthsuccess(data?.user));
+    toast.success('Registration successful');
+    return true;
   } catch (error) {
     const message = error.response?.data?.message || 'Registration failed';
+    toast.error(message);
     dispatch(setautherror(message));
+    return false;
   }
 };
 
 export const asyncloginuser = (payload) => async (dispatch) => {
   try {
     dispatch(setauthloading());
-    const { data } = await apiClient.post('/api/auth/login', payload);
-    dispatch(setauthsuccess(data?.user || data));
+    const { data } = await authApi.post('/login', payload);
+    dispatch(setauthsuccess(data?.user));
+    toast.success('Login successful');
   } catch (error) {
     const message = error.response?.data?.message || 'Login failed';
     dispatch(setautherror(message));
+    toast.error(message);
+    return false;
   }
 };
 
 export const asyncloaduser = () => async (dispatch) => {
   try {
     dispatch(setauthloading());
-    const { data } = await apiClient.get('/api/auth/me');
-    dispatch(setauthsuccess(data?.user || data));
+    const { data } = await authApi.get('/me');
+    dispatch(setauthsuccess(data?.user));
   } catch (error) {
     const message = error.response?.data?.message || 'Failed to load user';
     dispatch(setautherror(message));
@@ -42,7 +51,7 @@ export const asyncloaduser = () => async (dispatch) => {
 export const asynclogoutuser = () => async (dispatch) => {
   try {
     dispatch(setauthloading());
-    await apiClient.get('/api/auth/logout');
+    await authApi.get('/logout');
     dispatch(clearuser());
   } catch (error) {
     const message = error.response?.data?.message || 'Logout failed';

@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom';
-import FooterSection from '../components/FooterSection';
 
 const NotFound = () => {
   return (
@@ -40,7 +39,6 @@ const NotFound = () => {
           </div>
         </div>
       </section>
-      <FooterSection />
     </div>
   );
 };
