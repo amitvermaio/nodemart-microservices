@@ -23,6 +23,7 @@ export const uploadProductImage = async ({ buffer, mimeType, originalName }) => 
     access: "blob", // public read access
   });
 
+  
   const extension = extname(originalName || "");
   const blobName = `${crypto.randomUUID()}${extension}`;
 

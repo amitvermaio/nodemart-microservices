@@ -1,3 +1,4 @@
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRightIcon, ShoppingBagIcon, StarIcon } from '@heroicons/react/24/outline';
 
@@ -59,4 +60,4 @@ const ItemCard = ({ product }) => {
   );
 };
 
-export default ItemCard;
+export default React.memo(ItemCard);

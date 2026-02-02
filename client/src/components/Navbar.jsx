@@ -7,9 +7,14 @@ import {
 } from '@heroicons/react/24/outline';
 import { useEffect, useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
+import { asynclogoutuser } from '../store/actions/authActions';
+import { toast } from 'sonner';
 
 export default function Navbar() {
+
+  const dispatch = useDispatch();
+
   const { isAuthenticated, user } = useSelector((state) => state.auth);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -45,6 +50,13 @@ export default function Navbar() {
       window.removeEventListener('default-address-updated', handler);
     };
   }, []);
+
+  const LogoutHandler = async () => {
+    const result = await dispatch(asynclogoutuser());
+    if (result) {
+      toast.success('Logged out successfully');
+    } 
+  }
 
   return (
     <nav className="w-full bg-zinc-950/95 backdrop-blur border-b border-zinc-800 sticky top-0 z-50">
@@ -152,7 +164,7 @@ export default function Navbar() {
                       Seller Dashboard
                     </button>
                     <div className="border-t border-zinc-800 mt-1 pt-1">
-                      <button className="w-full text-left px-4 py-2 font-body text-xs text-red-400 hover:bg-red-950/40 hover:text-red-300">
+                      <button onClick={LogoutHandler} className="w-full text-left px-4 py-2 font-body text-xs text-red-400 hover:bg-red-950/40 hover:text-red-300">
                         Log out
                       </button>
                     </div>

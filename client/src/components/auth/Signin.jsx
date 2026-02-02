@@ -1,7 +1,8 @@
 import { useForm } from 'react-hook-form';
-import { Link } from 'react-router-dom';
-import { toast } from 'sonner';
+import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
+import { useDispatch } from 'react-redux';
+import { asyncloginuser } from '../../store/actions/authActions';
 import FooterSection from '../FooterSection';
 
 const Signin = () => {
@@ -16,8 +17,21 @@ const Signin = () => {
     },
   });
 
-  const onSubmit = () => {
-    toast.success('Signed in (demo only)');
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+
+  const onSubmit = async (credentials) => {
+    if (credentials.usernameOrEmail && credentials.password) {
+      let res;
+      if (credentials.usernameOrEmail.includes('@')) {
+        res = await dispatch(asyncloginuser({ email: credentials.usernameOrEmail, password: credentials.password }));
+      } else {
+        res = await dispatch(asyncloginuser({ username: credentials.usernameOrEmail, password: credentials.password }));
+      }
+      if (res) {
+        navigate('/');
+      }
+    }
   };
 
   return (

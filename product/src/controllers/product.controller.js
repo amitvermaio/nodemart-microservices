@@ -25,7 +25,7 @@ const normalizeCategory = (value) => {
 export const createProduct = async (req, res, next) => {
   try {
     const seller = req.user.id;
-    const { title, description, priceAmount, priceCurrency, category } = req.body;
+    const { title, description, priceAmount, priceCurrency, category, stock } = req.body;
 
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ message: "At least one product image is required" });
@@ -59,11 +59,12 @@ export const createProduct = async (req, res, next) => {
       price: { amount, currency: priceCurrency || "INR" },
       category: normalizeCategory(category),
       images: imagePayload,
+      stock: stock ? parseInt(stock) : 0,
     };
 
     const createdProduct = await Product.create(productPayload);
 
-    await publishToQueue('PRODUCT_SELLER_DASHBOARD.PRODUCT_CREATED', createProduct);
+    await publishToQueue('PRODUCT_SELLER_DASHBOARD.PRODUCT_CREATED', createdProduct);
 
     return res.status(201).json({ data: createdProduct });
   } catch (error) {

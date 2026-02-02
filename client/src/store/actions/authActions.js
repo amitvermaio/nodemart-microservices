@@ -28,7 +28,7 @@ export const asyncloginuser = (payload) => async (dispatch) => {
     dispatch(setauthloading());
     const { data } = await authApi.post('/login', payload);
     dispatch(setauthsuccess(data?.user));
-    toast.success('Login successful');
+    toast.success('Login successfully');
   } catch (error) {
     const message = error.response?.data?.message || 'Login failed';
     dispatch(setautherror(message));
@@ -54,8 +54,11 @@ export const asynclogoutuser = () => async (dispatch) => {
     dispatch(setauthloading());
     await authApi.get('/logout');
     dispatch(clearuser());
+    return true;
   } catch (error) {
     const message = error.response?.data?.message || 'Logout failed';
+    toast.error(message);
     dispatch(setautherror(message));
+    return false;
   }
 };

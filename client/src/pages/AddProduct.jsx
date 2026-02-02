@@ -56,15 +56,13 @@ const AddProduct = () => {
       },
       stock: data.stock ? Number(data.stock) : 0,
       category: selectedCategories,
-      // images will be sent as binary files via FormData
-      // seller will be attached on the backend using the authenticated user
     };
 
     const formData = new FormData();
     formData.append('title', payload.title);
     formData.append('description', payload.description);
-    formData.append('price.amount', String(payload.price.amount));
-    formData.append('price.currency', payload.price.currency);
+    formData.append('priceAmount', String(payload.price.amount));
+    formData.append('priceCurrency', payload.price.currency);
     formData.append('stock', String(payload.stock));
 
     payload.category.forEach((cat) => {
@@ -75,9 +73,13 @@ const AddProduct = () => {
       formData.append('images', file);
     });
 
-    const res = await productApi.post('/', formData);
+    const res = await productApi.post('/', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
     if (res.status === 201) {
-      
       toast.success('Product Added Successfully!');
     }
 
@@ -228,7 +230,7 @@ const AddProduct = () => {
                 <div>
                   <p className="text-[11px] font-medium text-zinc-300">Images</p>
                   <p className="text-[11px] text-zinc-500">
-                    Upload up to 5 images. They will be sent as files in FormData.
+                    Upload up to 5 images<span className='text-red-500'> *</span>. They will be sent as files in FormData.
                   </p>
                 </div>
               </div>

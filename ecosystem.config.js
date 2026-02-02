@@ -35,6 +35,18 @@ module.exports = {
       cwd: "./ai",
       script: "server.js",
       watch: true,
+    },
+    {
+      name: "notification",
+      cwd: "./notification",
+      script: "server.js",
+      watch: true,
+    },
+    {
+      name: "dashboard",
+      cwd: "./dashboard",
+      script: "server.js",
+      watch: true,
     }
   ]
 };

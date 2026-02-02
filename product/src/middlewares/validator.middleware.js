@@ -22,6 +22,8 @@ export const productsValidation = [
   body('priceCurrency')
     .optional()
     .isIn(['USD', 'INR']).withMessage('priceCurrency must be either USD or INR'),
+  body('stock')
+    .isInt({ min: 1 }).withMessage('Stock must be a non-negative integer'),
   body('category')
     .optional(),
   validate,
