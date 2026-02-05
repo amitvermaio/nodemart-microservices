@@ -4,8 +4,6 @@ import { socket } from './socket';
 import { useDispatch, useSelector } from 'react-redux';
 import Home from './pages/Home';
 import AppLayout from './components/AppLayout';
-import Signup from './components/auth/Signup';
-import Signin from './components/auth/Signin';
 import Loader from './components/Loader';
 import { setsocketconnected } from './store/reducers/authSlice';
 import { asyncloaduser } from './store/actions/authActions';
@@ -21,6 +19,8 @@ const ItemDetails = lazy(() => import('./pages/ItemDetails'));
 const Blogs = lazy(() => import('./pages/Blogs'));
 const AddProduct = lazy(() => import('./pages/AddProduct'));
 const NotFound = lazy(() => import('./pages/NotFound'));
+const Signup = lazy(() => import('./components/auth/Signup'));
+const Signin = lazy(() => import('./components/auth/Signin'));
 
 const App = () => {
   const dispatch = useDispatch();
@@ -33,7 +33,7 @@ const App = () => {
   }, [dispatch, user, status]);
 
   useEffect(() => {
-    if (isAuthenticated && user) {
+    if (isAuthenticated && user && status==='succeeded') {
       socket.connect();
 
       socket.on('connect', () => {
@@ -47,7 +47,7 @@ const App = () => {
       dispatch(setsocketconnected(false));
       socket.disconnect();
     };
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, user, status, dispatch]);
 
   return (
     <Suspense fallback={<Loader />}>
