@@ -6,6 +6,7 @@ import {
   logout, 
   getUserAddresses, 
   addUserAddress,
+  makeDefaultAddress,
   deleteUserAddress,
 } from '../controllers/auth.controller.js';
 import { registerValidator, loginValidator } from '../middlewares/validator.middleware.js';
@@ -30,6 +31,9 @@ router.get('/users/me/addresses', authenticate, getUserAddresses);
 
 // POST /api/auth/users/me/addresses
 router.post('/users/me/addresses', authenticate, addUserAddress);
+
+// PATCH /api/auth/users/me/addresses/:addressId
+router.patch('/users/me/addresses/:addressId', authenticate, makeDefaultAddress);
 
 // DELETE /api/auth/users/me/addresses/:addressId
 router.delete('/users/me/addresses/:addressId', authenticate, deleteUserAddress);

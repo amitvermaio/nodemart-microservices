@@ -1,9 +1,11 @@
+import 'dotenv/config';
 import { StateGraph, MessagesAnnotation } from '@langchain/langgraph';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { ToolMessage, AIMessage, HumanMessage } from '@langchain/core/messages';
 import tools from './tools.js';
 
 const model = new ChatGoogleGenerativeAI({
+  apiKey: process.env.GOOGLE_API_KEY,
   model: 'gemini-2.5-flash',
   temperature: 0.7,
 });

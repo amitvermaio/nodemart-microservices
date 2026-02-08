@@ -1,139 +1,88 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
+import { useSelector, useDispatch } from 'react-redux';
 import AddressCard from '../components/profile/AddressCard';
-
-const DUMMY_ADDRESSES = [
-  {
-    id: 'addr-1',
-    street: '221B Baker Street',
-    city: 'London',
-    state: 'London',
-    zip: 'NW1 6XE',
-    country: 'United Kingdom',
-    isDefault: true,
-  },
-  {
-    id: 'addr-2',
-    street: 'MG Road, Indiranagar',
-    city: 'Bengaluru',
-    state: 'Karnataka',
-    zip: '560038',
-    country: 'India',
-    isDefault: false,
-  },
-];
+import {
+  asyncfetchaddresses,
+  asyncnewaddress,
+  asyncmakedefaultaddress,
+  asyncdeleteaddress,
+} from '../store/actions/authActions';
 
 const Profile = () => {
-  const [addresses, setAddresses] = useState(DUMMY_ADDRESSES);
-  const { register, handleSubmit, reset } = useForm({
+  const dispatch = useDispatch();
+  const { addresses, isAuthenticated } = useSelector((state) => ({
+    addresses: state.auth.addresses || [],
+    isAuthenticated: state.auth.isAuthenticated,
+  }));
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { isSubmitting },
+  } = useForm({
     defaultValues: {
       street: '',
       city: '',
-      stateValue: '',
+      state: '',
       zip: '',
       country: '',
     },
   });
 
   useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem('userAddresses');
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length) {
-          Promise.resolve().then(() => setAddresses(parsed));
-          return;
-        }
-      }
-      window.localStorage.setItem('userAddresses', JSON.stringify(DUMMY_ADDRESSES));
-      const def = DUMMY_ADDRESSES.find((a) => a.isDefault) || DUMMY_ADDRESSES[0];
-      if (def) {
-        window.localStorage.setItem('defaultAddress', JSON.stringify(def));
-        window.dispatchEvent(new CustomEvent('default-address-updated'));
-      }
-    } catch {
-      // ignore
-    }
-  }, []);
-
-  const handleMakeDefault = (selected) => {
-    setAddresses((prev) => {
-      const updated = prev.map((addr) => ({
-        ...addr,
-        isDefault: addr.id === selected.id,
-      }));
-
-      window.localStorage.setItem('userAddresses', JSON.stringify(updated));
-      window.localStorage.setItem('defaultAddress', JSON.stringify(updated.find((a) => a.isDefault) || selected));
-      window.dispatchEvent(new CustomEvent('default-address-updated'));
-
-      return updated;
-    });
-  };
-
-  const handleAddAddress = (data) => {
-    if (!data.street.trim() || !data.city.trim() || !data.country.trim()) {
+    if (!isAuthenticated) {
       return;
     }
 
-    setAddresses((prev) => {
-      const isFirst = prev.length === 0;
-      const newAddress = {
-        id: `addr-${Date.now()}`,
-        street: data.street.trim(),
-        city: data.city.trim(),
-        state: data.stateValue.trim(),
-        zip: data.zip.trim(),
-        country: data.country.trim(),
-        isDefault: isFirst,
-      };
+    dispatch(asyncfetchaddresses());
+  }, [dispatch, isAuthenticated]);
 
-      const updated = [...prev, newAddress].map((addr, index) =>
-        isFirst && index === prev.length
-          ? { ...addr, isDefault: true }
-          : addr
-      );
+  const handleMakeDefault = async (selected) => {
+    if (!selected || selected.isDefault) {
+      return;
+    }
 
-      window.localStorage.setItem('userAddresses', JSON.stringify(updated));
-      const def =
-        updated.find((a) => a.isDefault) || updated[0] || newAddress;
-      if (def) {
-        window.localStorage.setItem('defaultAddress', JSON.stringify(def));
-        window.dispatchEvent(new CustomEvent('default-address-updated'));
-      }
+    const addressId = selected._id || selected.id;
+    if (!addressId) {
+      return;
+    }
 
-      reset();
-
-      return updated;
-    });
+    await dispatch(asyncmakedefaultaddress(addressId));
   };
 
-  const handleDeleteAddress = (selected) => {
-    setAddresses((prev) => {
-      const remaining = prev.filter((addr) => addr.id !== selected.id);
+  const handleAddAddress = async (data) => {
+    const street = data.street.trim();
+    const city = data.city.trim();
+    const country = data.country.trim();
 
-      if (remaining.length === 0) {
-        window.localStorage.removeItem('userAddresses');
-        window.localStorage.removeItem('defaultAddress');
-        window.dispatchEvent(new CustomEvent('default-address-updated'));
-        return [];
-      }
+    if (!street || !city || !country) {
+      return;
+    }
 
-      let updated = remaining;
-      if (!remaining.some((addr) => addr.isDefault)) {
-        const [first, ...rest] = remaining;
-        updated = [{ ...first, isDefault: true }, ...rest];
-      }
+    const payload = {
+      street,
+      city,
+      state: (data.state || '').trim(),
+      zip: (data.zip || '').trim(),
+      country,
+      isDefault: addresses.length === 0,
+    };
 
-      window.localStorage.setItem('userAddresses', JSON.stringify(updated));
-      const def = updated.find((a) => a.isDefault) || updated[0];
-      if (def) {
-        window.localStorage.setItem('defaultAddress', JSON.stringify(def));
-      }
-      window.dispatchEvent(new CustomEvent('default-address-updated'));
+    const success = await dispatch(asyncnewaddress(payload));
+    if (success) {
+      reset();
+    }
+  };
 
-      return updated;
-    });
+  const handleDeleteAddress = async (selected) => {
+    const addressId = selected?._id || selected?.id;
+    if (!addressId) {
+      return;
+    }
+
+    await dispatch(asyncdeleteaddress(addressId));
   };
 
   const defaultAddress =
@@ -186,7 +135,7 @@ const Profile = () => {
                 Add new address
               </p>
               <p className="text-[11px] text-zinc-500">
-                This is stored only in your browser for now.
+                Saved to your account and used during checkout.
               </p>
             </div>
 
@@ -207,7 +156,7 @@ const Profile = () => {
                 <input
                   type="text"
                   placeholder="State / Region"
-                  {...register('stateValue')}
+                  {...register('state')}
                   className="w-full rounded-lg border border-zinc-800 bg-zinc-950/80 px-3 py-2 text-xs text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-cyan-500/70"
                 />
               </div>
@@ -229,6 +178,7 @@ const Profile = () => {
 
             <button
               type="submit"
+              disabled={isSubmitting}
               className="mt-1 inline-flex items-center justify-center rounded-full bg-cyan-500/90 px-4 py-1.5 text-xs font-medium text-zinc-950 hover:bg-cyan-400 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             >
               Save address
@@ -237,14 +187,20 @@ const Profile = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          {addresses.map((address) => (
-            <AddressCard
-              key={address.id}
-              address={address}
-              onMakeDefault={handleMakeDefault}
-              onDelete={handleDeleteAddress}
-            />
-          ))}
+          {addresses.length === 0 ? (
+            <p className="text-sm text-zinc-500">
+              You have not saved any addresses yet.
+            </p>
+          ) : (
+            addresses.map((address) => (
+              <AddressCard
+                key={address._id || address.id}
+                address={address}
+                onMakeDefault={handleMakeDefault}
+                onDelete={handleDeleteAddress}
+              />
+            ))
+          )}
         </div>
       </div>
     </section>

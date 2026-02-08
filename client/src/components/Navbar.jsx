@@ -5,7 +5,7 @@ import {
   ChevronDownIcon,
   ArrowRightOnRectangleIcon,
 } from '@heroicons/react/24/outline';
-import { useEffect, useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { asynclogoutuser } from '../store/actions/authActions';
@@ -15,10 +15,9 @@ export default function Navbar() {
 
   const dispatch = useDispatch();
 
-  const { isAuthenticated, user } = useSelector((state) => state.auth);
+  const { isAuthenticated, user, addresses } = useSelector((state) => state.auth);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [defaultAddress, setDefaultAddress] = useState(null);
 
   const navItems = [
     { label: 'Shop', to: '/shop' },
@@ -30,26 +29,13 @@ export default function Navbar() {
   const capitalize = (str = '') => str.charAt(0).toUpperCase() + str.slice(1);
 
 
-  useEffect(() => {
-    const loadAddress = () => {
-      try {
-        const raw = window.localStorage.getItem('defaultAddress');
-        if (!raw) return;
-        const parsed = JSON.parse(raw);
-        setDefaultAddress(parsed);
-      } catch {
-        // ignore
-      }
-    };
+  const defaultAddress = useMemo(() => {
+    if (!Array.isArray(addresses) || addresses.length === 0) {
+      return null;
+    }
 
-    loadAddress();
-
-    const handler = () => loadAddress();
-    window.addEventListener('default-address-updated', handler);
-    return () => {
-      window.removeEventListener('default-address-updated', handler);
-    };
-  }, []);
+    return addresses.find((address) => address.isDefault) || addresses[0];
+  }, [addresses]);
 
   const LogoutHandler = async () => {
     const result = await dispatch(asynclogoutuser());

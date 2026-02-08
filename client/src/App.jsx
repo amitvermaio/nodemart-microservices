@@ -1,12 +1,12 @@
 import { Routes, Route } from 'react-router-dom';
-import { useEffect, lazy, Suspense } from 'react';
+import { useEffect, lazy, Suspense, use } from 'react';
 import { socket } from './socket';
 import { useDispatch, useSelector } from 'react-redux';
 import Home from './pages/Home';
 import AppLayout from './components/AppLayout';
 import Loader from './components/Loader';
 import { setsocketconnected } from './store/reducers/authSlice';
-import { asyncloaduser } from './store/actions/authActions';
+import { asyncloaduser, asyncfetchaddresses } from './store/actions/authActions';
 
 const Shop = lazy(() => import('./pages/Shop'));
 const Orders = lazy(() => import('./pages/Orders'));
@@ -24,13 +24,19 @@ const Signin = lazy(() => import('./components/auth/Signin'));
 
 const App = () => {
   const dispatch = useDispatch();
-  const { user, status, isAuthenticated } = useSelector(state => state.auth);
+  const { user, status, isAuthenticated, addresses } = useSelector(state => state.auth);
 
   useEffect(() => {
     if (!user && status === 'idle') {
       dispatch(asyncloaduser());
     }
   }, [dispatch, user, status]);
+
+  useEffect(() => {
+    if (isAuthenticated && status === 'succeeded' && addresses.length === 0) {
+      dispatch(asyncfetchaddresses());
+    }
+  }, [dispatch, isAuthenticated, status, addresses.length]);
 
   useEffect(() => {
     if (isAuthenticated && user && status==='succeeded') {

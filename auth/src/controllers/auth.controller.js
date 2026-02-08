@@ -199,3 +199,26 @@ export const deleteUserAddress = async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
+
+export const makeDefaultAddress = async (req, res) => {
+  try {
+    const user = req.user;
+    const { addressId } = req.params;
+
+    const address = user.addresses.id(addressId);
+    if (!address) {
+      return res.status(404).json({ message: 'Address not found' });
+    }
+
+    user.addresses.forEach(addr => addr.isDefault = false);
+    address.isDefault = true;
+    await user.save();
+
+    res.status(200).json({
+      message: 'Default address updated successfully',
+      addresses: user.addresses,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+}
