@@ -1,23 +1,25 @@
-import { 
-  ShoppingBagIcon, 
+import {
+  ShoppingBagIcon,
   MagnifyingGlassIcon,
   Bars3Icon,
   ChevronDownIcon,
   ArrowRightOnRectangleIcon,
 } from '@heroicons/react/24/outline';
 import { useState, useMemo } from 'react';
-import { Link, NavLink } from 'react-router-dom';
+import { Link, NavLink, useNavigate, useSearchParams } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { asynclogoutuser } from '../store/actions/authActions';
 import { toast } from 'sonner';
 
 export default function Navbar() {
-
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const dispatch = useDispatch();
 
   const { isAuthenticated, user, addresses } = useSelector((state) => state.auth);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const currentQuery = searchParams.get('q') || '';
 
   const navItems = [
     { label: 'Shop', to: '/shop' },
@@ -74,16 +76,34 @@ export default function Navbar() {
 
           {/* Search */}
           <div className="hidden md:flex flex-1 max-w-md mx-8">
-            <div className="relative w-full group">
+            <form
+              className="relative w-full group"
+              onSubmit={(event) => {
+                event.preventDefault();
+                const formData = new FormData(event.currentTarget);
+                const rawValue = formData.get('search');
+                const trimmed = typeof rawValue === 'string' ? rawValue.trim() : '';
+                if (trimmed.length === 0) {
+                  navigate('/shop');
+                  return;
+                }
+                // converting search value string to url safe format
+                // eg Iphone 14 Pro Max -> iphone%2014%20pro%20max
+                navigate(`/shop?q=${encodeURIComponent(trimmed)}`);
+              }}
+            >
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <MagnifyingGlassIcon className="size-4 text-zinc-500 group-focus-within:text-zinc-300" />
               </div>
               <input
-                type="text"
-                placeholder="Search products, orders, sellers..."
+                type="search"
+                name="search"
+                defaultValue={currentQuery}
+                key={currentQuery}
+                placeholder="Search products ..."
                 className="block w-full bg-zinc-900 border border-zinc-800 rounded-md py-1.5 pl-10 pr-3 font-body text-sm placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-zinc-700 focus:border-zinc-700 transition-all"
               />
-            </div>
+            </form>
           </div>
 
           <div className="flex items-center gap-2">

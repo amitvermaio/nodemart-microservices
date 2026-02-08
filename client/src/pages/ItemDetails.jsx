@@ -1,20 +1,63 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ShoppingBagIcon, ShareIcon, ArrowLeftIcon, StarIcon } from '@heroicons/react/24/outline';
+import { ShoppingBagIcon, ShareIcon, ArrowLeftIcon } from '@heroicons/react/24/outline';
 import { toast } from 'sonner';
-import { PRODUCTS } from '../api/products';
+import { asyncfetchproductbyid } from '../store/actions/productActions';
+
+const formatPrice = (amount, currency) => {
+  if (!Number.isFinite(amount)) {
+    return '—';
+  }
+
+  try {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currency || 'INR',
+      minimumFractionDigits: 2,
+    }).format(amount);
+  } catch {
+    return `${currency || 'INR'} ${amount.toFixed(2)}`;
+  }
+};
 
 const ItemDetails = () => {
   const { itemId } = useParams();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
-  const product = useMemo(() => {
-    const id = Number(itemId);
-    if (!Number.isFinite(id)) return null;
-    return PRODUCTS.find((p) => p.id === id) || null;
-  }, [itemId]);
+  const { selected: selectedProduct, status, error } = useSelector((state) => state.products);
 
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+
+  useEffect(() => {
+    if (!itemId) {
+      return;
+    }
+    setActiveImageIndex(0);
+    dispatch(asyncfetchproductbyid(itemId));
+  }, [dispatch, itemId]);
+
+  const product = useMemo(() => {
+    if (!selectedProduct) {
+      return null;
+    }
+    const selectedId = selectedProduct?._id
+      ? String(selectedProduct._id)
+      : selectedProduct?.id !== undefined
+        ? String(selectedProduct.id)
+        : null;
+
+    if (!selectedId) {
+      return null;
+    }
+
+    return selectedId === itemId ? selectedProduct : null;
+  }, [selectedProduct, itemId]);
+
+  useEffect(() => {
+    setActiveImageIndex(0);
+  }, [product?._id]);
 
   const handleAddToCart = () => {
     if (!product) return;
@@ -22,17 +65,18 @@ const ItemDetails = () => {
     try {
       const raw = window.localStorage.getItem('cartItems');
       const parsed = raw ? JSON.parse(raw) : [];
-      const existingIndex = parsed.findIndex((item) => item.id === product.id);
+      const productId = product?._id || product?.id;
+      const existingIndex = parsed.findIndex((item) => item.id === productId);
 
       if (existingIndex !== -1) {
         parsed[existingIndex].quantity += 1;
       } else {
         parsed.push({
-          id: product.id,
-          name: product.name,
-          price: product.price,
+          id: productId,
+          name: product?.title || product?.name || 'Product',
+          price: Number(product?.price?.amount ?? product?.price ?? 0),
           quantity: 1,
-          tag: product.tag,
+          tag: product?.tag,
         });
       }
 
@@ -51,8 +95,8 @@ const ItemDetails = () => {
     try {
       if (navigator.share) {
         await navigator.share({
-          title: product.name,
-          text: product.description,
+          title: product?.title || product?.name,
+          text: product?.description,
           url: shareUrl,
         });
       } else if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -68,7 +112,22 @@ const ItemDetails = () => {
     }
   };
 
-  if (!product) {
+  if ((status === 'loading' || status === 'loadingMore') && !product) {
+    return (
+      <section className="bg-zinc-950 text-zinc-100 min-h-[calc(100vh-4rem)] border-t border-zinc-900/80 flex items-center">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16 w-full">
+          <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 px-6 py-8 text-center">
+            <p className="text-sm font-semibold text-zinc-100 mb-1">Loading product…</p>
+            <p className="text-xs text-zinc-500">
+              Fetching the latest details for this item.
+            </p>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (!product || status === 'failed') {
     return (
       <section className="bg-zinc-950 text-zinc-100 min-h-[calc(100vh-4rem)] border-t border-zinc-900/80 flex items-center">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16 w-full">
@@ -83,7 +142,7 @@ const ItemDetails = () => {
           <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 px-6 py-8 text-center">
             <p className="text-sm font-semibold text-zinc-100 mb-1">Product not found</p>
             <p className="text-xs text-zinc-500 mb-4">
-              This item may have been removed or is not available yet.
+              {error || 'This item may have been removed or is not available yet.'}
             </p>
             <button
               type="button"
@@ -97,6 +156,43 @@ const ItemDetails = () => {
       </section>
     );
   }
+
+  const normalizedImages = useMemo(() => {
+    if (!Array.isArray(product?.images)) {
+      return [];
+    }
+
+    return product.images
+      .map((image) => {
+        if (typeof image === 'string') {
+          return image;
+        }
+        if (image?.url) {
+          return image.url;
+        }
+        if (image?.thumbnail) {
+          return image.thumbnail;
+        }
+        return null;
+      })
+      .filter(Boolean);
+  }, [product?.images]);
+
+  const categories = useMemo(() => {
+    if (Array.isArray(product?.category)) {
+      return product.category.filter(Boolean);
+    }
+    if (product?.category) {
+      return [product.category];
+    }
+    return [];
+  }, [product?.category]);
+
+  const title = product?.title || product?.name || 'Product';
+  const description = product?.description;
+  const priceAmount = Number(product?.price?.amount ?? product?.price ?? NaN);
+  const priceCurrency = product?.price?.currency || 'INR';
+  const formattedPrice = formatPrice(priceAmount, priceCurrency);
 
   return (
     <section className="bg-zinc-950 text-zinc-100 min-h-[calc(100vh-4rem)] border-t border-zinc-900/80">
@@ -113,10 +209,10 @@ const ItemDetails = () => {
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1.3fr)] gap-6 sm:gap-8 items-start">
           <div className="space-y-4">
             <div className="relative w-full aspect-square rounded-3xl border border-zinc-800 overflow-hidden bg-zinc-900 flex items-center justify-center">
-              {product.images && product.images.length > 0 ? (
+              {normalizedImages.length > 0 ? (
                 <img
-                  src={product.images[Math.min(activeImageIndex, product.images.length - 1)]}
-                  alt={product.name}
+                  src={normalizedImages[Math.min(activeImageIndex, normalizedImages.length - 1)]}
+                  alt={title}
                   className="absolute inset-0 h-full w-full object-cover"
                 />
               ) : (
@@ -124,21 +220,21 @@ const ItemDetails = () => {
                   <ShoppingBagIcon className="size-16 text-zinc-600" />
                 </div>
               )}
-              {product.tag && (
+              {product?.tag && (
                 <span className="absolute top-4 left-4 text-[10px] font-code uppercase tracking-[0.16em] px-2 py-1 rounded-full bg-zinc-900/90 border border-zinc-700 text-zinc-300">
                   {product.tag}
                 </span>
               )}
-              {product.badge && (
+              {product?.badge && (
                 <span className="absolute top-4 right-4 bg-cyan-400 text-black px-3 py-1 rounded-full text-[10px] font-semibold">
                   {product.badge}
                 </span>
               )}
             </div>
 
-            {product.images && product.images.length > 1 && (
+            {normalizedImages.length > 1 && (
               <div className="grid grid-cols-4 gap-2">
-                {product.images.map((image, index) => (
+                {normalizedImages.map((image, index) => (
                   <button
                     key={image}
                     type="button"
@@ -151,7 +247,7 @@ const ItemDetails = () => {
                   >
                     <img
                       src={image}
-                      alt={`${product.name} ${index + 1}`}
+                      alt={`${title} ${index + 1}`}
                       className="h-full w-full object-cover"
                     />
                   </button>
@@ -163,14 +259,14 @@ const ItemDetails = () => {
               <p>
                 Category:{' '}
                 <span className="text-zinc-100 font-medium">
-                  {product.category}
+                  {categories.length > 0 ? categories.join(', ') : 'Uncategorized'}
                 </span>
               </p>
               <p>
                 Ships in:{' '}
                 <span className="text-zinc-100 font-medium">2–4 business days</span>
               </p>
-              {typeof product.deliveryDays === 'number' && (
+              {typeof product?.deliveryDays === 'number' && (
                 <p>
                   Delivery in:{' '}
                   <span className="text-zinc-100 font-medium">
@@ -191,22 +287,12 @@ const ItemDetails = () => {
                 Product
               </p>
               <h1 className="font-heading text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-white">
-                {product.name}
+                {title}
               </h1>
-              {product.rating && (
-                <div className="flex items-center gap-2 text-xs text-zinc-400">
-                  <StarIcon className="size-4 text-cyan-300" />
-                  <span className="font-medium text-zinc-100">
-                    {product.rating.toFixed(1)}
-                  </span>
-                  <span>•</span>
-                  <span>In stock</span>
-                </div>
-              )}
             </div>
 
             <p className="text-sm text-zinc-300 max-w-xl">
-              {product.description}
+              {description}
             </p>
 
             <div className="rounded-2xl border border-zinc-800 bg-zinc-900/70 px-4 py-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -216,7 +302,7 @@ const ItemDetails = () => {
                 </p>
                 <div className="flex items-baseline gap-2">
                   <span className="font-heading text-2xl sm:text-3xl font-bold text-white">
-                    ${product.price.toFixed(2)}
+                    {formattedPrice}
                   </span>
                   <span className="text-[11px] text-zinc-500">incl. all taxes</span>
                 </div>

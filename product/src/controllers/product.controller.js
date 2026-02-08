@@ -74,31 +74,95 @@ export const createProduct = async (req, res, next) => {
 
 export const getProducts = async (req, res, next) => {
   try {
-    const { q, minprice, maxprice, skip = 0, limit = 20 } = req.query;
+    const {
+      q,
+      minprice,
+      maxprice,
+      category,
+      skip: skipParam = 0,
+      limit: limitParam = 20,
+    } = req.query;
+
     const filter = {};
 
     if (q) {
       filter.$text = { $search: q };
     }
 
-    if (minprice) {
-      filter["price.amount"] = { ...filter["price.amount"], $gte: parseFloat(minprice) };
+    const parsedMin = Number(minprice);
+    const parsedMax = Number(maxprice);
+
+    if (Number.isFinite(parsedMin)) {
+      filter["price.amount"] = {
+        ...filter["price.amount"],
+        $gte: parsedMin,
+      };
     }
 
-    if (maxprice) {
-      filter["price.amount"] = { ...filter["price.amount"], $lte: parseFloat(maxprice) };
+    if (Number.isFinite(parsedMax)) {
+      filter["price.amount"] = {
+        ...filter["price.amount"],
+        $lte: parsedMax,
+      };
     }
 
-    const products = await Product.find(filter)
-      .skip(parseInt(skip))
-      .limit(Math.min(parseInt(limit), 20));
+    const normalizedCategories = normalizeCategory(category);
+    if (normalizedCategories.length > 0) {
+      filter.category = { $in: normalizedCategories };
+    }
 
-    return res.status(200).json({ data: products });
+    const parsedSkip = Math.max(Number.parseInt(skipParam, 10) || 0, 0);
+    const parsedLimit = Math.min(Math.max(Number.parseInt(limitParam, 10) || 20, 1), 50);
+
+    const includeMeta = parsedSkip === 0;
+
+    const [products, total, priceStats, availableCategories] = await Promise.all([
+      Product.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(parsedSkip)
+        .limit(parsedLimit),
+      Product.countDocuments(filter),
+      includeMeta
+        ? Product.aggregate([
+            { $match: filter },
+            {
+              $group: {
+                _id: null,
+                min: { $min: "$price.amount" },
+                max: { $max: "$price.amount" },
+              },
+            },
+          ])
+        : Promise.resolve([]),
+      includeMeta ? Product.distinct("category") : Promise.resolve([]),
+    ]);
+
+    const stats = priceStats[0] || {};
+    const hasMore = parsedSkip + products.length < total;
+
+    return res.status(200).json({
+      data: products,
+      pagination: {
+        skip: parsedSkip + products.length,
+        limit: parsedLimit,
+        total,
+        hasMore,
+      },
+      meta: includeMeta
+        ? {
+            priceRange: {
+              min: Number.isFinite(stats.min) ? stats.min : null,
+              max: Number.isFinite(stats.max) ? stats.max : null,
+            },
+            categories: (availableCategories || []).filter(Boolean).sort(),
+          }
+        : undefined,
+    });
   } catch (error) {
     console.error("Error fetching products:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
-}
+};
 
 export const getProductById = async (req, res, next) => {
   try {
