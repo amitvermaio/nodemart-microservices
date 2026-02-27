@@ -18,6 +18,7 @@ const initialState = {
     total: 0,
   },
   meta: {
+    q: '',
     priceRange: {
       min: null,
       max: null,

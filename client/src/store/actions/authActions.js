@@ -43,9 +43,7 @@ export const asyncloaduser = () => async (dispatch) => {
     const { data } = await authApi.get('/me');
     dispatch(setauthsuccess(data?.user));
   } catch (error) {
-    const message = error.response?.data?.message || 'Failed to load user';
-    toast.error(message);
-    dispatch(setautherror(message));
+    dispatch(setautherror(error.response?.data?.message || 'Failed to load user'));
   }
 };
 

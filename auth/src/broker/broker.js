@@ -2,17 +2,25 @@ import 'dotenv/config';
 import amqplib from 'amqplib';
 
 let channel, connection;
+const RABBITMQ_RETRY_DELAY = 5000; // 5 seconds
 
-const connectBroker = async () => {
+const connectBroker = async (retries = 5) => {
   if (connection) return connection;
 
-  try {
-    connection = await amqplib.connect(process.env.RABBITMQ_URL);
-    console.log('Connected to RABBITMQ');
-    channel = await connection.createChannel();
-
-  } catch (error) {
-    console.error('Error connecting to message broker:', error);
+  for (let i = 0; i < retries; i++) {
+    try {
+      connection = await amqplib.connect(process.env.RABBITMQ_URL);
+      console.log('Connected to RABBITMQ');
+      channel = await connection.createChannel();
+      return connection;
+    } catch (error) {
+      console.warn(`RabbitMQ connection attempt ${i + 1}/${retries} failed. ${error.message}`);
+      if (i < retries - 1) {
+        await new Promise(resolve => setTimeout(resolve, RABBITMQ_RETRY_DELAY));
+      } else {
+        console.warn('Failed to connect to RabbitMQ after all retries. Will retry on next queue operation.');
+      }
+    }
   }
 }
 

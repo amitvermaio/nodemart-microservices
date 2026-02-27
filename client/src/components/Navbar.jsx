@@ -11,7 +11,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { asynclogoutuser } from '../store/actions/authActions';
 import { toast } from 'sonner';
 
-export default function Navbar() {
+const Navbar = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const dispatch = useDispatch();
@@ -215,3 +215,5 @@ export default function Navbar() {
     </nav>
   );
 }
+
+export default Navbar;

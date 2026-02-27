@@ -1,5 +1,5 @@
 import { Routes, Route } from 'react-router-dom';
-import { useEffect, lazy, Suspense, use } from 'react';
+import { useEffect, lazy, Suspense } from 'react';
 import { socket } from './socket';
 import { useDispatch, useSelector } from 'react-redux';
 import Home from './pages/Home';
