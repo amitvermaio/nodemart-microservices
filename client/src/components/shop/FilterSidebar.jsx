@@ -63,7 +63,7 @@ const FilterSidebar = ({
             onChange={(e) =>
               onPriceChange([Math.min(priceRange[0], Number(e.target.value)), Number(e.target.value)])
             }
-            className="w-full accent-cyan-500 hidden sm:block"
+            className="w-full accent-cyan-500"
           />
         </div>
         <div className="flex items-center justify-between text-[11px] text-zinc-500">

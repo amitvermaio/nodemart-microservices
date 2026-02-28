@@ -116,6 +116,12 @@ export const getProducts = async (req, res, next) => {
 
     const includeMeta = parsedSkip === 0;
 
+    // Build a separate filter WITHOUT price constraints for computing the
+    // overall min/max price range. This prevents the slider bounds from
+    // shrinking when the user applies a price filter.
+    const metaFilter = { ...filter };
+    delete metaFilter["price.amount"];
+
     const [products, total, priceStats, availableCategories] = await Promise.all([
       Product.find(filter)
         .sort({ createdAt: -1 })
@@ -124,7 +130,7 @@ export const getProducts = async (req, res, next) => {
       Product.countDocuments(filter),
       includeMeta
         ? Product.aggregate([
-          { $match: filter },
+          { $match: metaFilter },
           {
             $group: {
               _id: null,

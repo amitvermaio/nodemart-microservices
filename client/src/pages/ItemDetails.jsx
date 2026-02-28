@@ -1,44 +1,33 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ShoppingBagIcon, ShareIcon, ArrowLeftIcon, StarIcon } from '@heroicons/react/24/outline';
 import { toast } from 'sonner';
 import { PRODUCTS } from '../api/products';
+import { asyncfetchproductbyid } from '../store/actions/productActions';
+import { useDispatch, useSelector } from 'react-redux';
 
 const ItemDetails = () => {
   const { itemId } = useParams();
   const navigate = useNavigate();
 
-  const product = useMemo(() => {
-    const id = Number(itemId);
-    if (!Number.isFinite(id)) return null;
-    return PRODUCTS.find((p) => p.id === id) || null;
-  }, [itemId]);
+  const product = useSelector((state) => state.products.selected);
+  const dispatch = useDispatch();
+
 
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+
+  useEffect(() => {
+    if (itemId) {
+      dispatch(asyncfetchproductbyid(itemId));
+    }
+  }, [dispatch, itemId]);
 
   const handleAddToCart = () => {
     if (!product) return;
 
     try {
-      const raw = window.localStorage.getItem('cartItems');
-      const parsed = raw ? JSON.parse(raw) : [];
-      const existingIndex = parsed.findIndex((item) => item.id === product.id);
-
-      if (existingIndex !== -1) {
-        parsed[existingIndex].quantity += 1;
-      } else {
-        parsed.push({
-          id: product.id,
-          name: product.name,
-          price: product.price,
-          quantity: 1,
-          tag: product.tag,
-        });
-      }
-
-      window.localStorage.setItem('cartItems', JSON.stringify(parsed));
-      toast.success('Added to cart');
-    } catch {
+      // something
+    } catch (error) {
       toast.error('Could not add to cart');
     }
   };
@@ -51,7 +40,7 @@ const ItemDetails = () => {
     try {
       if (navigator.share) {
         await navigator.share({
-          title: product.name,
+          title: product.title,
           text: product.description,
           url: shareUrl,
         });
@@ -115,8 +104,8 @@ const ItemDetails = () => {
             <div className="relative w-full aspect-square rounded-3xl border border-zinc-800 overflow-hidden bg-zinc-900 flex items-center justify-center">
               {product.images && product.images.length > 0 ? (
                 <img
-                  src={product.images[Math.min(activeImageIndex, product.images.length - 1)]}
-                  alt={product.name}
+                  src={product.images[Math.min(activeImageIndex, product.images.length - 1)]?.url}
+                  alt={product.title}
                   className="absolute inset-0 h-full w-full object-cover"
                 />
               ) : (
@@ -140,7 +129,7 @@ const ItemDetails = () => {
               <div className="grid grid-cols-4 gap-2">
                 {product.images.map((image, index) => (
                   <button
-                    key={image}
+                    key={image._id || image.id || index}
                     type="button"
                     onClick={() => setActiveImageIndex(index)}
                     className={`relative aspect-square rounded-xl overflow-hidden border transition-colors ${
@@ -150,8 +139,8 @@ const ItemDetails = () => {
                     }`}
                   >
                     <img
-                      src={image}
-                      alt={`${product.name} ${index + 1}`}
+                      src={image.url}
+                      alt={`${product.title} ${index + 1}`}
                       className="h-full w-full object-cover"
                     />
                   </button>
@@ -163,7 +152,7 @@ const ItemDetails = () => {
               <p>
                 Category:{' '}
                 <span className="text-zinc-100 font-medium">
-                  {product.category}
+                  {Array.isArray(product.category) ? product.category.join(', ') : product.category}
                 </span>
               </p>
               <p>
@@ -191,7 +180,7 @@ const ItemDetails = () => {
                 Product
               </p>
               <h1 className="font-heading text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-white">
-                {product.name}
+                {product.title}
               </h1>
               {product.rating && (
                 <div className="flex items-center gap-2 text-xs text-zinc-400">
@@ -216,7 +205,7 @@ const ItemDetails = () => {
                 </p>
                 <div className="flex items-baseline gap-2">
                   <span className="font-heading text-2xl sm:text-3xl font-bold text-white">
-                    ${product.price.toFixed(2)}
+                    ${(product.price?.amount ?? 0).toFixed(2)}
                   </span>
                   <span className="text-[11px] text-zinc-500">incl. all taxes</span>
                 </div>

@@ -6,6 +6,7 @@ import { asyncfetchproducts } from '../store/actions/productActions';
 import { setproductmeta } from '../store/reducers/productSlice';
 import ItemCard from '../components/shop/ItemCard';
 import FilterSidebar from '../components/shop/FilterSidebar';
+import InfiniteScroll from 'react-infinite-scroll-component';
 
 const Shop = () => {
   const [searchParams] = useSearchParams();
@@ -23,34 +24,26 @@ const Shop = () => {
   const maxPrice = meta.priceRange.max ?? 1000;
 
   const [priceRange, setPriceRange] = useState([minPrice, maxPrice]);
+  const [prevBounds, setPrevBounds] = useState({ min: minPrice, max: maxPrice });
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
 
-  // Sync URL search param → meta.q and fetch
+  if (meta.priceRange.min !== null && meta.priceRange.max !== null) {
+    if (prevBounds.min !== meta.priceRange.min || prevBounds.max !== meta.priceRange.max) {
+      setPrevBounds({ min: meta.priceRange.min, max: meta.priceRange.max });
+      setPriceRange([meta.priceRange.min, meta.priceRange.max]);
+    }
+  }
+
   useEffect(() => {
     dispatch(setproductmeta({ q: search, minprice: null, maxprice: null, selectedCategories: [] }));
   }, [search]);
 
-  // Fetch products whenever meta filter values change
   useEffect(() => {
     dispatch(asyncfetchproducts());
-  }, [meta.q, meta.minprice, meta.maxprice, meta.selectedCategories]);
+  }, [meta.q, meta.minprice, meta.maxprice, meta.selectedCategories, dispatch]);
 
-  // When API meta arrives, update local price slider bounds
-  useEffect(() => {
-    if (meta.priceRange.min !== null && meta.priceRange.max !== null) {
-      setPriceRange((prev) => {
-        const newMin = meta.priceRange.min;
-        const newMax = meta.priceRange.max;
-        // Only reset if the bounds actually changed
-        if (prev[0] === newMin && prev[1] === newMax) return prev;
-        return [newMin, newMax];
-      });
-    }
-  }, [meta.priceRange.min, meta.priceRange.max]);
-
-  const handlePriceChange = useCallback(
-    (newRange) => {
+  const handlePriceChange = useCallback((newRange) => {
       setPriceRange(newRange);
       dispatch(
         setproductmeta({
@@ -62,8 +55,7 @@ const Shop = () => {
     [dispatch, minPrice, maxPrice]
   );
 
-  const handleToggleCategory = useCallback(
-    (category) => {
+  const handleToggleCategory = useCallback((category) => {
       setSelectedCategories((prev) => {
         const next = prev.includes(category)
           ? prev.filter((c) => c !== category)
@@ -156,26 +148,23 @@ const Shop = () => {
                 </button>
               </div>
             ) : (
-              <>
+              <InfiniteScroll
+                dataLength={products.length}
+                next={handleLoadMore}
+                hasMore={pagination.hasMore}
+                loader={
+                  <div className="flex justify-center mt-8">
+                    <p className="text-sm text-zinc-400 animate-pulse">Loading more products…</p>
+                  </div>
+                }
+                style={{ overflow: 'visible' }}
+              >
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
                   {products.map((product) => (
                     <ItemCard key={product._id || product.id} product={product} />
                   ))}
                 </div>
-
-                {pagination.hasMore && (
-                  <div className="flex justify-center mt-8">
-                    <button
-                      type="button"
-                      onClick={handleLoadMore}
-                      disabled={status === 'loadingMore'}
-                      className="px-6 py-2.5 rounded-full border border-zinc-800 bg-zinc-900 text-xs font-medium text-zinc-200 hover:border-cyan-500/70 hover:text-cyan-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {status === 'loadingMore' ? 'Loading…' : 'Load more'}
-                    </button>
-                  </div>
-                )}
-              </>
+              </InfiniteScroll>
             )}
           </div>
         </div>
