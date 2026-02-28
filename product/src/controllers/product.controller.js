@@ -124,15 +124,15 @@ export const getProducts = async (req, res, next) => {
       Product.countDocuments(filter),
       includeMeta
         ? Product.aggregate([
-            { $match: filter },
-            {
-              $group: {
-                _id: null,
-                min: { $min: "$price.amount" },
-                max: { $max: "$price.amount" },
-              },
+          { $match: filter },
+          {
+            $group: {
+              _id: null,
+              min: { $min: "$price.amount" },
+              max: { $max: "$price.amount" },
             },
-          ])
+          },
+        ])
         : Promise.resolve([]),
       includeMeta ? Product.distinct("category") : Promise.resolve([]),
     ]);
@@ -150,12 +150,12 @@ export const getProducts = async (req, res, next) => {
       },
       meta: includeMeta
         ? {
-            priceRange: {
-              min: Number.isFinite(stats.min) ? stats.min : null,
-              max: Number.isFinite(stats.max) ? stats.max : null,
-            },
-            categories: (availableCategories || []).filter(Boolean).sort(),
-          }
+          priceRange: {
+            min: Number.isFinite(stats.min) ? stats.min : null,
+            max: Number.isFinite(stats.max) ? stats.max : null,
+          },
+          categories: (availableCategories || []).filter(Boolean).sort(),
+        }
         : undefined,
     });
   } catch (error) {
@@ -255,6 +255,6 @@ export const getProductsBySeller = async (req, res, next) => {
 
     return res.status(200).json({ products });
   } catch (error) {
-    
+
   }
 }

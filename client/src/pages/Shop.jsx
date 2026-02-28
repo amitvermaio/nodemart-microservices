@@ -1,48 +1,93 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { AdjustmentsHorizontalIcon } from '@heroicons/react/24/outline';
+import { useDispatch, useSelector } from 'react-redux';
+import { asyncfetchproducts } from '../store/actions/productActions';
+import { setproductmeta } from '../store/reducers/productSlice';
 import ItemCard from '../components/shop/ItemCard';
 import FilterSidebar from '../components/shop/FilterSidebar';
-import { PRODUCTS } from '../api/products';
 
 const Shop = () => {
-  const prices = PRODUCTS.map((p) => p.price);
-  const minPrice = Math.floor(Math.min(...prices));
-  const maxPrice = Math.ceil(Math.max(...prices));
+  const [searchParams] = useSearchParams();
+  const search = searchParams.get('q') || '';
+
+  const dispatch = useDispatch();
+  const {
+    items: products,
+    status,
+    pagination,
+    meta,
+  } = useSelector((state) => state.products);
+
+  const minPrice = meta.priceRange.min ?? 0;
+  const maxPrice = meta.priceRange.max ?? 1000;
 
   const [priceRange, setPriceRange] = useState([minPrice, maxPrice]);
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
 
-  const categories = useMemo(
-    () => Array.from(new Set(PRODUCTS.map((p) => p.category))).sort(),
-    []
+  // Sync URL search param → meta.q and fetch
+  useEffect(() => {
+    dispatch(setproductmeta({ q: search, minprice: null, maxprice: null, selectedCategories: [] }));
+  }, [search]);
+
+  // Fetch products whenever meta filter values change
+  useEffect(() => {
+    dispatch(asyncfetchproducts());
+  }, [meta.q, meta.minprice, meta.maxprice, meta.selectedCategories]);
+
+  // When API meta arrives, update local price slider bounds
+  useEffect(() => {
+    if (meta.priceRange.min !== null && meta.priceRange.max !== null) {
+      setPriceRange((prev) => {
+        const newMin = meta.priceRange.min;
+        const newMax = meta.priceRange.max;
+        // Only reset if the bounds actually changed
+        if (prev[0] === newMin && prev[1] === newMax) return prev;
+        return [newMin, newMax];
+      });
+    }
+  }, [meta.priceRange.min, meta.priceRange.max]);
+
+  const handlePriceChange = useCallback(
+    (newRange) => {
+      setPriceRange(newRange);
+      dispatch(
+        setproductmeta({
+          minprice: newRange[0] <= minPrice ? null : newRange[0],
+          maxprice: newRange[1] >= maxPrice ? null : newRange[1],
+        })
+      );
+    },
+    [dispatch, minPrice, maxPrice]
   );
 
-  const filteredProducts = useMemo(() => {
-    return PRODUCTS.filter((product) => {
-      const inPriceRange =
-        product.price >= priceRange[0] && product.price <= priceRange[1];
+  const handleToggleCategory = useCallback(
+    (category) => {
+      setSelectedCategories((prev) => {
+        const next = prev.includes(category)
+          ? prev.filter((c) => c !== category)
+          : [...prev, category];
+        dispatch(setproductmeta({ selectedCategories: next }));
+        return next;
+      });
+    },
+    [dispatch]
+  );
 
-      const inCategory =
-        selectedCategories.length === 0 ||
-        selectedCategories.includes(product.category);
-
-      return inPriceRange && inCategory;
-    });
-  }, [priceRange, selectedCategories]);
-
-  const handleToggleCategory = (category) => {
-    setSelectedCategories((prev) =>
-      prev.includes(category)
-        ? prev.filter((c) => c !== category)
-        : [...prev, category]
-    );
-  };
-
-  const handleClearFilters = () => {
+  const handleClearFilters = useCallback(() => {
     setSelectedCategories([]);
     setPriceRange([minPrice, maxPrice]);
-  };
+    dispatch(setproductmeta({ minprice: null, maxprice: null, selectedCategories: [] }));
+  }, [dispatch, minPrice, maxPrice]);
+
+  const handleLoadMore = useCallback(() => {
+    if (pagination.hasMore && status !== 'loadingMore') {
+      dispatch(asyncfetchproducts({ append: true }));
+    }
+  }, [dispatch, pagination.hasMore, status]);
+
+  const loading = status === 'loading';
 
   return (
     <section className="bg-zinc-950 text-zinc-100 min-h-[calc(100vh-4rem)] border-t border-zinc-900/80">
@@ -62,8 +107,8 @@ const Shop = () => {
 
           <div className="flex items-center gap-3 justify-between sm:justify-end">
             <p className="text-xs text-zinc-400 font-body">
-              Showing <span className="text-zinc-100 font-semibold">{filteredProducts.length}</span> of{' '}
-              <span className="text-zinc-100 font-semibold">{PRODUCTS.length}</span> products
+              Showing <span className="text-zinc-100 font-semibold">{products.length}</span> of{' '}
+              <span className="text-zinc-100 font-semibold">{pagination.total}</span> products
             </p>
             <button
               type="button"
@@ -79,20 +124,24 @@ const Shop = () => {
         <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 items-start">
           <div className="hidden sm:block w-64">
             <FilterSidebar
-              categories={categories}
+              categories={meta.categories}
               selectedCategories={selectedCategories}
               onToggleCategory={handleToggleCategory}
-              minPrice={minPrice}
-              maxPrice={maxPrice}
+              minPrice={Math.floor(minPrice)}
+              maxPrice={Math.ceil(maxPrice)}
               priceRange={priceRange}
-              onPriceChange={setPriceRange}
+              onPriceChange={handlePriceChange}
               onClear={handleClearFilters}
               isMobile={false}
             />
           </div>
 
           <div className="flex-1 w-full">
-            {filteredProducts.length === 0 ? (
+            {loading ? (
+              <div className="border border-dashed border-zinc-800 rounded-2xl p-10 flex items-center justify-center">
+                <p className="text-sm text-zinc-400 animate-pulse">Loading products…</p>
+              </div>
+            ) : products.length === 0 ? (
               <div className="border border-dashed border-zinc-800 rounded-2xl p-10 flex flex-col items-center justify-center text-center gap-3 bg-zinc-950/60">
                 <p className="text-sm font-semibold text-zinc-200">No products match your filters</p>
                 <p className="text-xs text-zinc-500 max-w-sm">
@@ -107,11 +156,26 @@ const Shop = () => {
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-                {filteredProducts.map((product) => (
-                  <ItemCard key={product.id} product={product} />
-                ))}
-              </div>
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+                  {products.map((product) => (
+                    <ItemCard key={product._id || product.id} product={product} />
+                  ))}
+                </div>
+
+                {pagination.hasMore && (
+                  <div className="flex justify-center mt-8">
+                    <button
+                      type="button"
+                      onClick={handleLoadMore}
+                      disabled={status === 'loadingMore'}
+                      className="px-6 py-2.5 rounded-full border border-zinc-800 bg-zinc-900 text-xs font-medium text-zinc-200 hover:border-cyan-500/70 hover:text-cyan-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {status === 'loadingMore' ? 'Loading…' : 'Load more'}
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -124,13 +188,13 @@ const Shop = () => {
             />
             <div className="w-[80%] max-w-xs p-3 pr-4">
               <FilterSidebar
-                categories={categories}
+                categories={meta.categories}
                 selectedCategories={selectedCategories}
                 onToggleCategory={handleToggleCategory}
-                minPrice={minPrice}
-                maxPrice={maxPrice}
+                minPrice={Math.floor(minPrice)}
+                maxPrice={Math.ceil(maxPrice)}
                 priceRange={priceRange}
-                onPriceChange={setPriceRange}
+                onPriceChange={handlePriceChange}
                 onClear={handleClearFilters}
                 isMobile
                 onClose={() => setIsMobileFiltersOpen(false)}

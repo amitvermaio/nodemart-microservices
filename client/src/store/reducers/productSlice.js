@@ -5,12 +5,6 @@ const initialState = {
   selected: null,
   status: 'idle',
   error: null,
-  filters: {
-    q: '',
-    minprice: null,
-    maxprice: null,
-    categories: [],
-  },
   pagination: {
     skip: 0,
     limit: 20,
@@ -19,6 +13,9 @@ const initialState = {
   },
   meta: {
     q: '',
+    minprice: null,
+    maxprice: null,
+    selectedCategories: [],
     priceRange: {
       min: null,
       max: null,
@@ -43,7 +40,6 @@ const productSlice = createSlice({
         limit,
         hasMore,
         total,
-        filters,
         meta,
         append,
       } = action.payload || {};
@@ -80,16 +76,9 @@ const productSlice = createSlice({
       if (typeof total === 'number') {
         state.pagination.total = total;
       }
-      if (filters) {
-        state.filters = {
-          ...state.filters,
-          ...filters,
-        };
-      }
       if (meta) {
         state.meta = {
           ...state.meta,
-          ...meta,
           priceRange: {
             ...state.meta.priceRange,
             ...meta.priceRange,
@@ -109,9 +98,9 @@ const productSlice = createSlice({
       state.status = 'failed';
       state.error = action.payload || null;
     },
-    setproductfilters: (state, action) => {
-      state.filters = {
-        ...state.filters,
+    setproductmeta: (state, action) => {
+      state.meta = {
+        ...state.meta,
         ...action.payload,
       };
       state.pagination.skip = 0;
@@ -120,6 +109,6 @@ const productSlice = createSlice({
   },
 });
 
-export const { setproductsloading, setproducts, setproduct, setproductserror, setproductfilters } = productSlice.actions;
+export const { setproductsloading, setproducts, setproduct, setproductserror, setproductmeta } = productSlice.actions;
 
 export default productSlice.reducer;
