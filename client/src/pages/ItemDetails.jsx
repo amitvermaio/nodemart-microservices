@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ShoppingBagIcon, ShareIcon, ArrowLeftIcon, StarIcon } from '@heroicons/react/24/outline';
+import { ShoppingBagIcon, ShareIcon, ArrowLeftIcon, StarIcon, MinusIcon, PlusIcon } from '@heroicons/react/24/outline';
 import { toast } from 'sonner';
-import { PRODUCTS } from '../api/products';
 import { asyncfetchproductbyid } from '../store/actions/productActions';
+import { asyncadditemtocart } from '../store/actions/cartActions';
 import { useDispatch, useSelector } from 'react-redux';
 
 const ItemDetails = () => {
@@ -15,6 +15,10 @@ const ItemDetails = () => {
 
 
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [quantity, setQuantity] = useState(1);
+
+  const MIN_QTY = 1;
+  const MAX_QTY = 5;
 
   useEffect(() => {
     if (itemId) {
@@ -22,12 +26,16 @@ const ItemDetails = () => {
     }
   }, [dispatch, itemId]);
 
+  const decrementQty = () => setQuantity((prev) => Math.max(MIN_QTY, prev - 1));
+  const incrementQty = () => setQuantity((prev) => Math.min(MAX_QTY, prev + 1));
+
   const handleAddToCart = () => {
     if (!product) return;
 
     try {
-      // something
+      dispatch(asyncadditemtocart({ productId: product._id, quantity }));
     } catch (error) {
+      console.error('Error adding item to cart:', error);
       toast.error('Could not add to cart');
     }
   };
@@ -211,7 +219,30 @@ const ItemDetails = () => {
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-3">
+                {/* Quantity selector */}
+                <div className="inline-flex items-center rounded-full border border-zinc-700 overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={decrementQty}
+                    disabled={quantity <= MIN_QTY}
+                    className="px-2.5 py-2 text-zinc-300 hover:text-white hover:bg-zinc-800 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    <MinusIcon className="size-3.5" />
+                  </button>
+                  <span className="min-w-[2rem] text-center text-xs font-medium text-zinc-100 select-none">
+                    {quantity}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={incrementQty}
+                    disabled={quantity >= MAX_QTY}
+                    className="px-2.5 py-2 text-zinc-300 hover:text-white hover:bg-zinc-800 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    <PlusIcon className="size-3.5" />
+                  </button>
+                </div>
+
                 <button
                   type="button"
                   onClick={handleAddToCart}

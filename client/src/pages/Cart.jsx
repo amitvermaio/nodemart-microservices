@@ -1,100 +1,60 @@
-import { useMemo, useState } from 'react';
+import { useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import CartCard from '../components/cart/CartCard';
 import CheckoutCard from '../components/cart/CheckoutCard';
-import { toast } from 'sonner';
-
-const INITIAL_CART = [
-  {
-    id: 1,
-    name: 'Minimalist Standing Desk Setup',
-    category: 'Accessories',
-    variant: 'Walnut • 120cm',
-    price: 299.99,
-    stock: 5,
-    quantity: 1,
-  },
-  {
-    id: 2,
-    name: 'Soft Cotton Oversized Hoodie',
-    category: 'Clothing',
-    variant: 'Black • L',
-    price: 79.0,
-    stock: 8,
-    quantity: 2,
-  },
-  {
-    id: 3,
-    name: 'Focus Accessories Pack',
-    category: 'Accessories',
-    variant: 'Matte black',
-    price: 59.0,
-    stock: 12,
-    quantity: 1,
-  },
-];
+import Loader from '../components/Loader';
+import {
+  asyncfetchcart,
+  asyncupdatecartitem,
+  asyncdeletecartitem,
+} from '../store/actions/cartActions';
 
 const Cart = () => {
-  const [cartItems, setCartItems] = useState(() => {
-    try {
-      const raw = window.localStorage.getItem('cartItems');
-      if (raw) {
-        return JSON.parse(raw);
-      }
-      window.localStorage.setItem('cartItems', JSON.stringify(INITIAL_CART));
-      return INITIAL_CART;
-    } catch {
-      return INITIAL_CART;
-    }
-  });
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const { items: cartItems, totals, status } = useSelector((state) => state.cart);
 
-  const subtotal = useMemo(
-    () => cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
-    [cartItems]
-  );
+  useEffect(() => {
+    dispatch(asyncfetchcart());
+  }, [dispatch]);
 
-  const itemsCount = useMemo(
-    () => cartItems.reduce((sum, item) => sum + item.quantity, 0),
-    [cartItems]
-  );
+  const subtotal = totals?.subtotal ?? 0;
 
-  const handleIncrease = (target) => {
-    setCartItems((prev) => {
-      const updated = prev.map((item) =>
-        item.id === target.id && item.quantity < item.stock
-          ? { ...item, quantity: item.quantity + 1 }
-          : item
-      );
-      window.localStorage.setItem('cartItems', JSON.stringify(updated));
-      return updated;
-    });
+  const itemsCount = totals?.totalQuantity ?? 0;
+
+  const handleIncrease = (item) => {
+    const maxQty = Math.min(item.product?.stock || 5, 5);
+    if (item.quantity >= maxQty) return;
+    dispatch(
+      asyncupdatecartitem({
+        productId: item.productId,
+        quantity: item.quantity + 1,
+      })
+    );
   };
 
-  const handleDecrease = (target) => {
-    setCartItems((prev) => {
-      const updated = prev.map((item) =>
-        item.id === target.id && item.quantity > 1
-          ? { ...item, quantity: item.quantity - 1 }
-          : item
-      );
-      window.localStorage.setItem('cartItems', JSON.stringify(updated));
-      return updated;
-    });
+  const handleDecrease = (item) => {
+    if (item.quantity <= 1) return;
+    dispatch(
+      asyncupdatecartitem({
+        productId: item.productId,
+        quantity: item.quantity - 1,
+      })
+    );
   };
 
-  const handleRemove = (target) => {
-    setCartItems((prev) => {
-      const updated = prev.filter((item) => item.id !== target.id);
-      window.localStorage.setItem('cartItems', JSON.stringify(updated));
-      return updated;
-    });
+  const handleRemove = (item) => {
+    dispatch(asyncdeletecartitem(item.productId));
   };
 
   const handleCheckout = () => {
-    toast.success('Checkout successful!', {
-      description: `You have purchased ${itemsCount} items for $${subtotal.toFixed(2)}.`
-    });
-    console.log('Checkout with items:', cartItems);
+    navigate('/checkout');
   };
+
+  if (status === 'loading' && cartItems.length === 0) {
+    return <Loader />;
+  }
 
   return (
     <section className="bg-zinc-950 text-zinc-100 min-h-[calc(100vh-4rem)] border-t border-zinc-900/80">
@@ -128,7 +88,7 @@ const Cart = () => {
             <div className="flex-1 w-full space-y-4">
               {cartItems.map((item) => (
                 <CartCard
-                  key={item.id}
+                  key={item._id}
                   item={item}
                   onIncrease={handleIncrease}
                   onDecrease={handleDecrease}

@@ -1,4 +1,6 @@
 import FavoriteCard from '../components/collections/FavoriteCard';
+import { useDispatch } from 'react-redux';
+import { asyncadditemtocart } from '../store/actions/cartActions';
 import { toast } from 'sonner';
 
 const DUMMY_FAVORITES = [
@@ -32,37 +34,13 @@ const DUMMY_FAVORITES = [
 ];
 
 const Collections = () => {
+  const dispatch = useDispatch();
+
   const addItemToCart = (item) => {
     try {
-      const raw = window.localStorage.getItem('cartItems');
-      const existing = raw ? JSON.parse(raw) : [];
-
-      const updated = [...existing];
-      const index = updated.findIndex((row) => row.id === item.id);
-
-      if (index >= 0) {
-        const current = updated[index];
-        const nextQty = Math.min((current.quantity || 1) + 1, item.stock ?? 99);
-        updated[index] = { ...current, quantity: nextQty };
-      } else {
-        updated.push({
-          id: item.id,
-          name: item.name,
-          category: item.category,
-          variant: item.tag,
-          price: item.price,
-          stock: item.stock ?? 99,
-          quantity: 1,
-        });
-      }
-
-      window.localStorage.setItem('cartItems', JSON.stringify(updated));
-
-      toast.success('Added to cart', {
-        description: `${item.name} is now in your cart.`,
-      });
+      dispatch(asyncadditemtocart({ productId: item.id, quantity: 1 }));
     } catch (err) {
-      console.error('Failed to update cart from collections', err);
+      console.error('Failed to add to cart from collections', err);
       toast.error('Could not add to cart');
     }
   };

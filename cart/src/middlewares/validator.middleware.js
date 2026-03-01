@@ -18,8 +18,8 @@ export const validateAddItemToCart = [
   body('quantity')
     .notEmpty()
     .withMessage('Quantity is required')
-    .isInt({ gt: 0 })
-    .withMessage('Quantity must be at least 1'),
+    .isInt({ gt: 0, lt: 6 })
+    .withMessage('Quantity must be between 1 and 5'),
   validate
 ]
 
@@ -32,8 +32,8 @@ export const validateUpdateCartItem = [
   body('quantity')
     .notEmpty()
     .withMessage('Quantity is required')
-    .isInt({ gt: 0 })
-    .withMessage('Quantity must be at least 1'),
+    .isInt({ gt: 0, lt: 6 })
+    .withMessage('Quantity must be between 1 and 5'),
   validate
 ]
 

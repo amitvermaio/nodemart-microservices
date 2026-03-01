@@ -1,30 +1,47 @@
-import { MinusSmallIcon, PlusSmallIcon, TrashIcon } from '@heroicons/react/24/outline';
+import React from 'react';
+import { MinusIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
+
+const CURRENCY_SYMBOLS = { USD: '$', INR: '₹' };
 
 const CartCard = ({ item, onIncrease, onDecrease, onRemove }) => {
+  const product = item.product || {};
+  const price = product.price?.amount || 0;
+  const currency = CURRENCY_SYMBOLS[product.price?.currency] || '₹';
+  const stock = product.stock || 0;
+  const title = product.title || 'Unknown Product';
+  const category = Array.isArray(product.category) ? product.category.join(', ') : product.category || '';
+  const image = product.images?.[0]?.url || product.images?.[0]?.thumbnail || null;
+  const maxQty = Math.min(stock, 5);
   const canDecrease = item.quantity > 1;
+  const canIncrease = item.quantity < maxQty;
 
   return (
     <article className="group rounded-2xl border border-zinc-800 bg-zinc-950/60 hover:bg-zinc-950 hover:border-cyan-500/50 transition-colors duration-300 flex gap-4 p-4 sm:p-5">
-      <div className="hidden sm:block w-24 h-24 rounded-xl bg-gradient-to-br from-zinc-900 via-zinc-950 to-black border border-zinc-800" />
+      {image ? (
+        <img
+          src={image}
+          alt={title}
+          className="hidden sm:block w-24 h-24 rounded-xl object-cover border border-zinc-800"
+        />
+      ) : (
+        <div className="hidden sm:block w-24 h-24 rounded-xl bg-gradient-to-br from-zinc-900 via-zinc-950 to-black border border-zinc-800" />
+      )}
 
       <div className="flex-1 flex flex-col gap-3">
         <header className="flex justify-between gap-3">
           <div>
             <p className="text-xs font-code uppercase tracking-[0.16em] text-zinc-500">
-              {item.category}
+              {category}
             </p>
             <h3 className="text-sm sm:text-base font-medium text-zinc-100">
-              {item.name}
+              {title}
             </h3>
-            {item.variant && (
-              <p className="text-xs text-zinc-500 mt-1">{item.variant}</p>
-            )}
           </div>
           <div className="text-right space-y-1">
             <p className="text-sm font-heading font-semibold text-zinc-100">
-              ${item.price.toFixed(2)}
+              {currency}{price.toFixed(2)}
             </p>
-            <p className="text-[11px] text-zinc-500">In stock: {item.stock}</p>
+            <p className="text-[11px] text-zinc-500">In stock: {stock}</p>
           </div>
         </header>
 
@@ -40,17 +57,22 @@ const CartCard = ({ item, onIncrease, onDecrease, onRemove }) => {
                   : 'opacity-40 cursor-not-allowed'
               }`}
             >
-              <MinusSmallIcon className="size-4" />
+              <MinusIcon className="size-4" />
             </button>
             <span className="px-3 text-xs font-medium text-zinc-100 min-w-[2.5rem] text-center">
               {item.quantity}
             </span>
             <button
               type="button"
-              onClick={() => onIncrease(item)}
-              className="inline-flex items-center justify-center size-7 rounded-full text-zinc-100 hover:bg-zinc-800 transition-colors"
+              onClick={() => canIncrease && onIncrease(item)}
+              disabled={!canIncrease}
+              className={`inline-flex items-center justify-center size-7 rounded-full text-zinc-100 transition-colors ${
+                canIncrease
+                  ? 'hover:bg-zinc-800'
+                  : 'opacity-40 cursor-not-allowed'
+              }`}
             >
-              <PlusSmallIcon className="size-4" />
+              <PlusIcon className="size-4" />
             </button>
           </div>
 
@@ -58,7 +80,7 @@ const CartCard = ({ item, onIncrease, onDecrease, onRemove }) => {
             <p className="text-zinc-500">
               Line total:{' '}
               <span className="font-medium text-zinc-100">
-                ${(item.price * item.quantity).toFixed(2)}
+                {currency}{(price * item.quantity).toFixed(2)}
               </span>
             </p>
             <button
@@ -76,4 +98,4 @@ const CartCard = ({ item, onIncrease, onDecrease, onRemove }) => {
   );
 };
 
-export default CartCard;
+export default React.memo(CartCard);

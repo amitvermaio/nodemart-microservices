@@ -11,7 +11,7 @@ const productApi = axios.create({
 });
 
 const cartApi = axios.create({
-  baseURL: import.meta.env.VITE_CART_API_BASE_URL || 'http://localhost:4002/api/cart',
+  baseURL: import.meta.env.VITE_CART_API_BASE_URL || 'http://localhost:4002/api/carts',
   withCredentials: true,
 });
 

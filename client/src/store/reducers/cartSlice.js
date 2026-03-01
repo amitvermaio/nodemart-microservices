@@ -2,6 +2,7 @@ import { createSlice } from '@reduxjs/toolkit';
 
 const initialState = {
   items: [],
+  totals: { itemCount: 0, totalQuantity: 0 },
   status: 'idle',
   error: null,
 };
@@ -16,7 +17,8 @@ const cartSlice = createSlice({
     },
     setcart: (state, action) => {
       state.status = 'succeeded';
-      state.items = action.payload || [];
+      state.items = action.payload.items || [];
+      state.totals = action.payload.totals || { itemCount: 0, totalQuantity: 0 };
     },
     setcarterror: (state, action) => {
       state.status = 'failed';
