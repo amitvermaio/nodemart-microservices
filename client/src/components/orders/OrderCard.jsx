@@ -1,25 +1,31 @@
-import { TruckIcon, ClockIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
+import { TruckIcon, ClockIcon, CheckCircleIcon, XCircleIcon, ShieldCheckIcon } from '@heroicons/react/24/outline';
 
 const statusConfig = {
-  processing: {
-    label: 'Processing',
+  PENDING: {
+    label: 'Pending',
     icon: ClockIcon,
     color: 'text-amber-300',
     pill: 'bg-amber-500/10 border-amber-400/40 text-amber-200',
   },
-  shipped: {
+  CONFIRMED: {
+    label: 'Confirmed',
+    icon: ShieldCheckIcon,
+    color: 'text-blue-300',
+    pill: 'bg-blue-500/10 border-blue-400/40 text-blue-200',
+  },
+  SHIPPED: {
     label: 'Shipped',
     icon: TruckIcon,
     color: 'text-cyan-300',
     pill: 'bg-cyan-500/10 border-cyan-400/40 text-cyan-200',
   },
-  delivered: {
+  DELIVERED: {
     label: 'Delivered',
     icon: CheckCircleIcon,
     color: 'text-emerald-300',
     pill: 'bg-emerald-500/10 border-emerald-400/40 text-emerald-200',
   },
-  cancelled: {
+  CANCELLED: {
     label: 'Cancelled',
     icon: XCircleIcon,
     color: 'text-red-300',
@@ -27,11 +33,34 @@ const statusConfig = {
   },
 };
 
-const OrderCard = ({ order, onCancel }) => {
-  const config = statusConfig[order.status] ?? statusConfig.processing;
+const formatAddress = (addr) => {
+  if (!addr) return '—';
+  return [addr.fullName, addr.city, addr.state, addr.country].filter(Boolean).join(', ');
+};
+
+const timeAgo = (dateStr) => {
+  if (!dateStr) return '';
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(dateStr).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
+};
+
+const OrderCard = ({ order, onCancel, onView }) => {
+  const config = statusConfig[order.status] ?? statusConfig.PENDING;
   const StatusIcon = config.icon;
 
-  const isCancellable = ['processing', 'shipped'].includes(order.status);
+  const isCancellable = ['PENDING', 'CONFIRMED'].includes(order.status);
+  const orderTitle =
+    order.items?.length > 0
+      ? order.items.map((i) => i.title).join(', ')
+      : 'Order';
+  const totalAmount = order.totalPrice?.amount ?? 0;
+  const address = formatAddress(order.shippingAddress);
 
   return (
     <article className="group rounded-2xl border border-zinc-800 bg-zinc-950/60 hover:bg-zinc-950 hover:border-cyan-500/50 transition-colors duration-300 flex flex-col gap-4 p-4 sm:p-5">
@@ -42,10 +71,10 @@ const OrderCard = ({ order, onCancel }) => {
           </div>
           <div>
             <p className="text-xs font-code uppercase tracking-[0.18em] text-zinc-500">
-              Order #{order.id}
+              Order #{order._id?.slice(-8)}
             </p>
-            <p className="text-sm font-medium text-zinc-100">
-              {order.title}
+            <p className="text-sm font-medium text-zinc-100 line-clamp-1">
+              {orderTitle}
             </p>
           </div>
         </div>
@@ -55,7 +84,7 @@ const OrderCard = ({ order, onCancel }) => {
             {config.label}
           </span>
           <span className="text-xs text-zinc-500 font-mono">
-            Placed {order.placedAt}
+            {timeAgo(order.createdAt)}
           </span>
         </div>
       </header>
@@ -63,36 +92,55 @@ const OrderCard = ({ order, onCancel }) => {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-body">
         <div className="space-y-1">
           <p className="text-zinc-500">Items</p>
-          <p className="text-zinc-100 font-medium">{order.items.length}</p>
+          <p className="text-zinc-100 font-medium">{order.items?.length ?? 0}</p>
         </div>
         <div className="space-y-1">
           <p className="text-zinc-500">Total</p>
-          <p className="text-zinc-100 font-medium">${order.total.toFixed(2)}</p>
+          <p className="text-zinc-100 font-medium">
+            {order.totalPrice?.currency === 'INR' ? '₹' : '$'}
+            {totalAmount.toFixed(2)}
+          </p>
         </div>
         <div className="space-y-1">
-          <p className="text-zinc-500">Expected</p>
-          <p className="text-zinc-100 font-medium">{order.expectedDelivery}</p>
+          <p className="text-zinc-500">Payment</p>
+          <p className="text-zinc-100 font-medium capitalize">
+            {order.paymentStatus?.toLowerCase() ?? '—'}
+          </p>
         </div>
         <div className="space-y-1">
           <p className="text-zinc-500">Destination</p>
-          <p className="text-zinc-100 font-medium truncate" title={order.address}>
-            {order.address}
+          <p className="text-zinc-100 font-medium truncate" title={address}>
+            {address}
           </p>
         </div>
       </div>
 
       <footer className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-zinc-800 mt-1">
         <div className="flex flex-wrap items-center gap-2 text-[11px] text-zinc-500">
-          {order.tags?.map((tag) => (
+          {order.items?.slice(0, 3).map((item, idx) => (
             <span
-              key={tag}
+              key={idx}
               className="px-2 py-0.5 rounded-full bg-zinc-900 border border-zinc-800 text-zinc-400"
             >
-              {tag}
+              {item.title}
             </span>
           ))}
+          {order.items?.length > 3 && (
+            <span className="px-2 py-0.5 rounded-full bg-zinc-900 border border-zinc-800 text-zinc-400">
+              +{order.items.length - 3} more
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2 justify-end">
+          {onView && (
+            <button
+              type="button"
+              onClick={() => onView(order)}
+              className="px-3 py-1.5 rounded-full text-[11px] font-medium border border-zinc-700 text-zinc-300 hover:bg-zinc-800 transition-colors"
+            >
+              View details
+            </button>
+          )}
           <button
             type="button"
             onClick={() => isCancellable && onCancel(order)}
@@ -103,7 +151,7 @@ const OrderCard = ({ order, onCancel }) => {
                 : 'border-zinc-800 text-zinc-500 cursor-not-allowed'
             }`}
           >
-            {order.status === 'cancelled' ? 'Cancelled' : 'Cancel order'}
+            {order.status === 'CANCELLED' ? 'Cancelled' : 'Cancel order'}
           </button>
         </div>
       </footer>

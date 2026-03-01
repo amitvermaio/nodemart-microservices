@@ -1,86 +1,53 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { AdjustmentsHorizontalIcon } from '@heroicons/react/24/outline';
 import OrderCard from '../components/orders/OrderCard';
-
-const MOCK_ORDERS = [
-  {
-    id: 'NM-24389',
-    title: 'Minimalist Standing Desk Setup',
-    status: 'processing',
-    placedAt: '2 hours ago',
-    expectedDelivery: 'Feb 03',
-    total: 329.99,
-    address: 'Amit Verma, Bengaluru, India',
-    tags: ['Desk', 'Accessories', 'Workspace'],
-    items: [
-      { name: 'Desk system' },
-      { name: 'Cable management kit' },
-    ],
-  },
-  {
-    id: 'NM-24312',
-    title: 'Soft Cotton Oversized Hoodie',
-    status: 'shipped',
-    placedAt: 'Yesterday',
-    expectedDelivery: 'Jan 31',
-    total: 79.0,
-    address: 'Amit Verma, Bengaluru, India',
-    tags: ['Clothing', 'Apparel'],
-    items: [{ name: 'Hoodie' }],
-  },
-  {
-    id: 'NM-24290',
-    title: 'Creator Audio Bundle',
-    status: 'delivered',
-    placedAt: 'Jan 24',
-    expectedDelivery: 'Jan 27',
-    total: 219.0,
-    address: 'Amit Verma, Bengaluru, India',
-    tags: ['Audio', 'Bundle'],
-    items: [{ name: 'Mic' }, { name: 'Arm' }, { name: 'Headphones' }],
-  },
-  {
-    id: 'NM-24210',
-    title: 'Weekend Comfort Set',
-    status: 'cancelled',
-    placedAt: 'Jan 10',
-    expectedDelivery: 'Jan 14',
-    total: 119.0,
-    address: 'Amit Verma, Bengaluru, India',
-    tags: ['Clothing'],
-    items: [{ name: 'Joggers' }, { name: 'Tee' }],
-  },
-];
+import Loader from '../components/Loader';
+import { asyncfetchmyorders, asynccancelorder } from '../store/actions/orderActions';
 
 const Orders = () => {
-  const [orders, setOrders] = useState(MOCK_ORDERS);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const { list: orders, status } = useSelector((s) => s.orders);
+  const { isAuthenticated } = useSelector((s) => s.auth);
   const [statusFilter, setStatusFilter] = useState('all');
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/signin');
+      return;
+    }
+    dispatch(asyncfetchmyorders());
+  }, [dispatch, isAuthenticated, navigate]);
 
   const filteredOrders = useMemo(() => {
     if (statusFilter === 'all') return orders;
-    return orders.filter((order) => order.status === statusFilter);
+    return orders.filter(
+      (order) => order.status?.toUpperCase() === statusFilter.toUpperCase()
+    );
   }, [orders, statusFilter]);
 
-  const handleCancel = (orderToCancel) => {
-    setOrders((prev) =>
-      prev.map((order) =>
-        order.id === orderToCancel.id ? { ...order, status: 'cancelled' } : order
-      )
-    );
+  const handleCancel = (order) => {
+    dispatch(asynccancelorder(order._id)).then(() => {
+      dispatch(asyncfetchmyorders());
+    });
   };
 
   const handleView = (order) => {
-    // Placeholder for future modal/details view
-    console.log('View order', order.id);
+    navigate(`/checkout/payment/${order._id}`);
   };
 
   const statusTabs = [
     { id: 'all', label: 'All' },
-    { id: 'processing', label: 'Processing' },
-    { id: 'shipped', label: 'Shipped' },
-    { id: 'delivered', label: 'Delivered' },
-    { id: 'cancelled', label: 'Cancelled' },
+    { id: 'PENDING', label: 'Pending' },
+    { id: 'CONFIRMED', label: 'Confirmed' },
+    { id: 'SHIPPED', label: 'Shipped' },
+    { id: 'DELIVERED', label: 'Delivered' },
+    { id: 'CANCELLED', label: 'Cancelled' },
   ];
+
+  if (status === 'loading' && orders.length === 0) return <Loader />;
 
   return (
     <section className="bg-zinc-950 text-zinc-100 min-h-[calc(100vh-4rem)] border-t border-zinc-900/80">
@@ -102,7 +69,7 @@ const Orders = () => {
             <div className="inline-flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-900 px-3 py-2 text-[11px] text-zinc-400">
               <AdjustmentsHorizontalIcon className="size-4 text-zinc-500" />
               <span>
-                {orders.filter((o) => o.status !== 'cancelled').length} active • {orders.length} total
+                {orders.filter((o) => o.status !== 'CANCELLED').length} active • {orders.length} total
               </span>
             </div>
           </div>
@@ -140,7 +107,7 @@ const Orders = () => {
             <div className="mt-4 space-y-4">
               {filteredOrders.map((order) => (
                 <OrderCard
-                  key={order.id}
+                  key={order._id}
                   order={order}
                   onCancel={handleCancel}
                   onView={handleView}

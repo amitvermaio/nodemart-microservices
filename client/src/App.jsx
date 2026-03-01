@@ -7,6 +7,7 @@ import AppLayout from './components/AppLayout';
 import Loader from './components/Loader';
 import { setsocketconnected } from './store/reducers/authSlice';
 import { asyncloaduser, asyncfetchaddresses } from './store/actions/authActions';
+import { asyncfetchcart } from './store/actions/cartActions';
 
 const Shop = lazy(() => import('./pages/Shop'));
 const Orders = lazy(() => import('./pages/Orders'));
@@ -19,13 +20,16 @@ const ItemDetails = lazy(() => import('./pages/ItemDetails'));
 const Blogs = lazy(() => import('./pages/Blogs'));
 const AddProduct = lazy(() => import('./pages/AddProduct'));
 const NotFound = lazy(() => import('./pages/NotFound'));
+const Checkout = lazy(() => import('./pages/Checkout'));
+const Payment = lazy(() => import('./pages/Payment'));
+const OrderSuccess = lazy(() => import('./pages/OrderSuccess'));
 const Signup = lazy(() => import('./components/auth/Signup'));
 const Signin = lazy(() => import('./components/auth/Signin'));
 
 const App = () => {
   const dispatch = useDispatch();
   const { user, status, isAuthenticated, addresses } = useSelector(state => state.auth);
-
+  const { status: cartStatus } = useSelector(state => state.cart);
   useEffect(() => {
     if (!user && status === 'idle') {
       dispatch(asyncloaduser());
@@ -37,6 +41,12 @@ const App = () => {
       dispatch(asyncfetchaddresses());
     }
   }, [dispatch, isAuthenticated, status, addresses.length]);
+
+  useEffect(() => {
+    if (isAuthenticated && user && status === 'succeeded' && cartStatus === 'idle') {
+      dispatch(asyncfetchcart());
+    }
+  }, [dispatch, isAuthenticated, user, status, cartStatus]);
 
   useEffect(() => {
     if (isAuthenticated && user && status==='succeeded') {
@@ -70,6 +80,9 @@ const App = () => {
           <Route path="/shop/:itemId" element={<ItemDetails />} />
           <Route path="/blogs" element={<Blogs />} />
           <Route path="/dashboard/add-product" element={<AddProduct />} />
+          <Route path="/checkout" element={<Checkout />} />
+          <Route path="/checkout/payment/:orderId" element={<Payment />} />
+          <Route path="/order-success/:orderId" element={<OrderSuccess />} />
         </Route>
 
         <Route path="/signup" element={<Signup />} />
