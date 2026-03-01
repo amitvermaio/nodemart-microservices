@@ -36,8 +36,10 @@ const Shop = () => {
   }
 
   useEffect(() => {
-    dispatch(setproductmeta({ q: search, minprice: null, maxprice: null, selectedCategories: [] }));
-  }, [search]);
+    if (search !== meta.q) {
+      dispatch(setproductmeta({ q: search, minprice: null, maxprice: null, selectedCategories: [] }));
+    }
+  }, [search, meta.q, dispatch]);
 
   useEffect(() => {
     dispatch(asyncfetchproducts());

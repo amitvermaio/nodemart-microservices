@@ -5,6 +5,7 @@ const initialState = {
   selected: null,
   status: 'idle',
   error: null,
+  _lastFetchKey: null,
   pagination: {
     skip: 0,
     limit: 20,
@@ -106,9 +107,12 @@ const productSlice = createSlice({
       state.pagination.skip = 0;
       state.pagination.hasMore = true;
     },
+    setlastfetchkey: (state, action) => {
+      state._lastFetchKey = action.payload;
+    },
   },
 });
 
-export const { setproductsloading, setproducts, setproduct, setproductserror, setproductmeta } = productSlice.actions;
+export const { setproductsloading, setproducts, setproduct, setproductserror, setproductmeta, setlastfetchkey } = productSlice.actions;
 
 export default productSlice.reducer;

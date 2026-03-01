@@ -1,8 +1,8 @@
 import { ArrowRightIcon } from '@heroicons/react/24/outline';
 
 const CheckoutCard = ({ subtotal, itemsCount, onCheckout }) => {
-  const shipping = subtotal > 0 ? 9.99 : 0;
-  const tax = subtotal * 0.18;
+  const shipping = subtotal > 0 ? 2.99 : 0;
+  const tax = subtotal * 0.007;
   const total = subtotal + shipping + tax;
 
   return (

@@ -16,6 +16,7 @@ const Navbar = () => {
   const [searchParams] = useSearchParams();
   const dispatch = useDispatch();
 
+  const totals = useSelector(state => state.cart.totals);
   const { isAuthenticated, user, addresses } = useSelector((state) => state.auth);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -110,9 +111,11 @@ const Navbar = () => {
             {isAuthenticated && (
               <Link to="/cart" className="relative p-2 hover:bg-zinc-900 rounded-md transition-colors group">
                 <ShoppingBagIcon className="size-5 text-zinc-400 group-hover:text-cyan-400" />
-                <span className="absolute -top-1 -right-1 bg-cyan-500 text-black text-[10px] font-code font-bold px-1 rounded-sm min-w-[16px]">
-                  2
-                </span>
+                {totals.itemCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-cyan-500 text-black text-[10px] font-code font-bold px-1 rounded-sm min-w-[16px]">
+                    {totals.itemCount > 9 ? '9+' : totals.itemCount}
+                  </span>
+                )}
               </Link>
             )}
 

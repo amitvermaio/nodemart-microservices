@@ -16,15 +16,29 @@ const ItemDetails = () => {
 
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
+  const [prevItemId, setPrevItemId] = useState(itemId);
 
   const MIN_QTY = 1;
-  const MAX_QTY = 5;
+  const stock = typeof product?.stock === 'number' ? product.stock : Infinity;
+  const MAX_QTY = Math.max(MIN_QTY, Math.min(5, stock));
+  const isOutOfStock = stock === 0;
+
+  if (itemId !== prevItemId) {
+    setPrevItemId(itemId);
+    setQuantity(1);
+    setActiveImageIndex(0);
+  }
 
   useEffect(() => {
     if (itemId) {
       dispatch(asyncfetchproductbyid(itemId));
     }
   }, [dispatch, itemId]);
+
+  const newQuantity = Math.min(quantity, MAX_QTY);
+  if (newQuantity !== quantity) {
+    setQuantity(newQuantity);
+  }
 
   const decrementQty = () => setQuantity((prev) => Math.max(MIN_QTY, prev - 1));
   const incrementQty = () => setQuantity((prev) => Math.min(MAX_QTY, prev + 1));
@@ -200,6 +214,25 @@ const ItemDetails = () => {
                   <span>In stock</span>
                 </div>
               )}
+              {typeof product.stock === 'number' && product.stock > 0 && (
+                <div className="flex items-center gap-2 mt-1">
+                  {product.stock <= 10 && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 text-[10px] font-semibold uppercase tracking-wider">
+                      Limited
+                    </span>
+                  )}
+                  <span className={`text-xs font-medium ${product.stock <= 10 ? 'text-amber-400' : 'text-zinc-400'}`}>
+                    {product.stock <= 10
+                      ? `Only ${product.stock} left in stock — order soon`
+                      : `${product.stock} in stock`}
+                  </span>
+                </div>
+              )}
+              {typeof product.stock === 'number' && product.stock === 0 && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-red-500/15 border border-red-500/30 text-red-400 text-[10px] font-semibold uppercase tracking-wider mt-1">
+                  Out of stock
+                </span>
+              )}
             </div>
 
             <p className="text-sm text-zinc-300 max-w-xl">
@@ -246,10 +279,15 @@ const ItemDetails = () => {
                 <button
                   type="button"
                   onClick={handleAddToCart}
-                  className="inline-flex items-center justify-center rounded-full bg-cyan-500/90 px-4 py-2 text-xs font-medium text-zinc-950 hover:bg-cyan-400 transition-colors"
+                  disabled={isOutOfStock}
+                  className={`inline-flex items-center justify-center rounded-full px-4 py-2 text-xs font-medium transition-colors ${
+                    isOutOfStock
+                      ? 'bg-zinc-700 text-zinc-400 cursor-not-allowed'
+                      : 'bg-cyan-500/90 text-zinc-950 hover:bg-cyan-400'
+                  }`}
                 >
                   <ShoppingBagIcon className="size-4 mr-2" />
-                  Add to cart
+                  {isOutOfStock ? 'Out of stock' : 'Add to cart'}
                 </button>
                 <button
                   type="button"

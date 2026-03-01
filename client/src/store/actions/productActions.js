@@ -4,11 +4,23 @@ import {
   setproducts,
   setproduct,
   setproductserror,
+  setlastfetchkey,
 } from '../reducers/productSlice';
 
 export const asyncfetchproducts = ({ append = false } = {}) => async (dispatch, getState) => {
   try {
-    const { meta, pagination } = getState().products;
+    const { meta, pagination, items, _lastFetchKey } = getState().products;
+
+    const fetchKey = JSON.stringify({
+      q: meta.q,
+      minprice: meta.minprice,
+      maxprice: meta.maxprice,
+      selectedCategories: meta.selectedCategories,
+    });
+
+    if (!append && items.length > 0 && _lastFetchKey === fetchKey) {
+      return;
+    }
 
     dispatch(setproductsloading(append ? 'append' : undefined));
 
@@ -37,6 +49,7 @@ export const asyncfetchproducts = ({ append = false } = {}) => async (dispatch, 
         append,
       })
     );
+    dispatch(setlastfetchkey(fetchKey));
   } catch (error) {
     const message =
       error.response?.data?.message || 'Failed to load products';

@@ -34,6 +34,8 @@ const ItemCard = ({ product, currency }) => {
 
   const priceAmount = Number(product?.price?.amount ?? product?.price ?? NaN);
   const priceCurrency = product?.price?.currency || currency || 'INR';
+  const stock = product?.stock ?? null;
+  const isLimited = typeof stock === 'number' && stock > 0 && stock <= 10;
 
   const formattedPrice = useMemo(
     () => formatPrice(priceAmount, priceCurrency),
@@ -80,6 +82,11 @@ const ItemCard = ({ product, currency }) => {
           {badge && (
             <span className="absolute top-3 right-3 bg-cyan-400 text-black px-2 py-1 rounded-full text-[10px] font-semibold">
               {badge}
+            </span>
+          )}
+          {!badge && isLimited && (
+            <span className="absolute top-3 right-3 bg-amber-500 text-black px-2 py-1 rounded-full text-[10px] font-semibold">
+              Limited
             </span>
           )}
         </div>
