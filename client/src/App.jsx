@@ -13,7 +13,6 @@ const Shop = lazy(() => import('./pages/Shop'));
 const Orders = lazy(() => import('./pages/Orders'));
 const Cart = lazy(() => import('./pages/Cart'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
-const Collections = lazy(() => import('./pages/Collections'));
 const Support = lazy(() => import('./pages/Support'));
 const Profile = lazy(() => import('./pages/Profile'));
 const ItemDetails = lazy(() => import('./pages/ItemDetails'));
@@ -26,6 +25,8 @@ const OrderSuccess = lazy(() => import('./pages/OrderSuccess'));
 const Signup = lazy(() => import('./components/auth/Signup'));
 const Signin = lazy(() => import('./components/auth/Signin'));
 const ForgotPassword = lazy(() => import('./components/auth/ForgotPassword'));
+import AuthWrapper from './components/auth/AuthWrapper';
+import UnAuthWrapper from './components/auth/UnAuthWrapper';
 
 const App = () => {
   const dispatch = useDispatch();
@@ -72,23 +73,32 @@ const App = () => {
         <Route element={<AppLayout />}>
           <Route path="/" element={<Home />} />
           <Route path="/shop" element={<Shop />} />
-          <Route path="/orders" element={<Orders />} />
-          <Route path="/cart" element={<Cart />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/collections" element={<Collections />} />
-          <Route path="/support" element={<Support />} />
-          <Route path="/profile" element={<Profile />} />
           <Route path="/shop/:itemId" element={<ItemDetails />} />
           <Route path="/blogs" element={<Blogs />} />
-          <Route path="/dashboard/add-product" element={<AddProduct />} />
-          <Route path="/checkout" element={<Checkout />} />
-          <Route path="/checkout/payment/:orderId" element={<Payment />} />
-          <Route path="/order-success/:orderId" element={<OrderSuccess />} />
+          <Route path="/support" element={<Support />} />
+
+          {/* customer routes */}
+          <Route element={<AuthWrapper role="user" />}>
+            <Route path="/orders" element={<Orders />} />
+            <Route path="/cart" element={<Cart />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/checkout" element={<Checkout />} />
+            <Route path="/checkout/payment/:orderId" element={<Payment />} />
+            <Route path="/order-success/:orderId" element={<OrderSuccess />} />
+          </Route>
+
+          {/* Seller routes */}
+          <Route element={<AuthWrapper role="seller" />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/dashboard/add-product" element={<AddProduct />} />
+          </Route>
         </Route>
 
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/signin" element={<Signin />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route element={<UnAuthWrapper />}>
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/signin" element={<Signin />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+        </Route>
 
         <Route path="*" element={<NotFound />} />
       </Routes>

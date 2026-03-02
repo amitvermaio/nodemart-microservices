@@ -17,16 +17,16 @@ const Navbar = () => {
   const dispatch = useDispatch();
 
   const totals = useSelector(state => state.cart.totals);
-  const { isAuthenticated, user, addresses } = useSelector((state) => state.auth);
+  const { isAuthenticated, user, addresses, role: userRole } = useSelector((state) => state.auth);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const currentQuery = searchParams.get('q') || '';
 
   const navItems = [
-    { label: 'Shop', to: '/shop' },
-    { label: 'Orders', to: '/orders' },
-    { label: 'Seller Dashboard', to: '/dashboard' },
-    { label: 'Support', to: '/support' }
+    { label: 'Shop', to: '/shop', role: 'all' },
+    { label: 'Orders', to: '/orders', role: 'user' },
+    { label: 'Seller Dashboard', to: '/dashboard', role: 'seller' },
+    { label: 'Support', to: '/support', role: 'all' }
   ];
 
   const capitalize = (str = '') => str.charAt(0).toUpperCase() + str.slice(1);
@@ -60,6 +60,7 @@ const Navbar = () => {
 
             <div className="hidden lg:flex items-center gap-6 font-body text-[13px] font-medium tracking-wide">
               {navItems.map((item) => (
+                item.role === 'all' || userRole === item.role) && (
                 <NavLink
                   key={item.label}
                   to={item.to}

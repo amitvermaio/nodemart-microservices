@@ -238,7 +238,7 @@ export const forgotPassword = async (req, res) => {
 
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(200).json({ message: 'OTP has been sent.' });
+      return res.status(200).json({ message: 'Invalid Email!' });
     }
 
     const existingOtp = await redis.get(`otp:${email}`);
