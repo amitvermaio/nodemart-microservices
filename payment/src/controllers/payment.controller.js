@@ -3,6 +3,7 @@ import axios from 'axios';
 import { stripe } from '../config/stripe.js';
 import { publishToQueue } from '../broker/broker.js';
 
+const PRODUCT_SERVICE_URL = process.env.PRODUCT_SERVICE_URL || 'http://localhost:4001/api/products';
 const ORDER_SERVICE_URL = process.env.ORDER_SERVICE_URL || 'http://localhost:4003/api/orders';
 
 export const createPayment = async (req, res) => {
@@ -12,7 +13,7 @@ export const createPayment = async (req, res) => {
     req.headers.authorization?.split(' ')[1];
 
   try {
-    // Check for an existing pending payment (prevents duplicates on retries)
+    // Check for an existing pending payment prevents duplicates on retries.
     const existingPayment = await Payment.findOne({ order: orderId, user: req.user.id, status: 'PENDING' });
     if (existingPayment) {
       const existingIntent = await stripe.paymentIntents.retrieve(existingPayment.stripeOrderId);
@@ -34,7 +35,7 @@ export const createPayment = async (req, res) => {
     const price = data.order.totalPrice;
 
     // Stripe minimum amounts by currency
-    const minAmounts = { USD: 0.5, INR: 50, EUR: 0.5, GBP: 0.3 };
+    const minAmounts = { USD: 0.5, INR: 50 };
     const cur = price.currency.toUpperCase();
     const minAmount = minAmounts[cur] ?? 0.5;
     if (price.amount < minAmount) {
@@ -103,12 +104,46 @@ export const verifyPayment = async (req, res) => {
       } catch (queueErr) {
         console.error('Queue publish failed (non-fatal):', queueErr.message);
       }
-      return;
+      
+      // try {
+      //   // decrease the stock of products in the order
+      //   await axios.post(`${PRODUCT_SERVICE_URL}/decrease-stock/${payment.order}`, {}, {
+      //     headers: { Authorization: `Bearer ${req.cookies?.NodeMart_Token || req.headers.authorization?.split(' ')[1]}` }
+      //   });
+      // } catch (error) {
+      //   console.error('Failed to decrease stock:', error.message);
+      // }`
     }
 
     res.status(400).json({ success: false });
   } catch (err) {
     console.error('Payment verification error:', err.message || err);
     res.status(500).json({ message: 'Verification failed' });
+  }
+};
+
+export const getPaymentStatus = async (req, res) => {
+  const { orderId } = req.params;
+
+  try {
+    const payment = await Payment.findOne({ order: orderId, user: req.user.id })
+      .sort({ createdAt: -1 })
+      .select('status stripeOrderId price createdAt updatedAt');
+
+    if (!payment) {
+      return res.status(404).json({ message: 'No payment found for this order' });
+    }
+
+    res.status(200).json({
+      orderId,
+      status: payment.status,
+      stripeOrderId: payment.stripeOrderId,
+      price: payment.price,
+      createdAt: payment.createdAt,
+      updatedAt: payment.updatedAt,
+    });
+  } catch (err) {
+    console.error('Get payment status error:', err.message || err);
+    res.status(500).json({ message: 'Failed to fetch payment status' });
   }
 };

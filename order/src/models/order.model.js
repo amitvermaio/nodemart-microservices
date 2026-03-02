@@ -6,6 +6,16 @@ const addressesSchema = new mongoose.Schema({
   state: String,
   zip: String,
   country: String,
+  phone: {
+    type: String,
+    validate: {
+      validator: function(v) {
+        return /^\+?[1-9]\d{1,14}$/.test(v); 
+      },
+      message: props => `${props.value} is not a valid phone number!`
+    },
+    required: [true, 'User phone number required']
+  }
 });
 
 const orderSchema = new mongoose.Schema({

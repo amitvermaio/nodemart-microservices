@@ -33,3 +33,17 @@ export const asyncverifypayment = (payload) => async (dispatch) => {
     throw error;
   }
 };
+
+export const asyncfetchpaymentstatus = (orderId) => async (dispatch) => {
+  try {
+    dispatch(setpaymentsloading());
+    const { data } = await paymentApi.get(`/status/${orderId}`);
+    dispatch(setlastpayment(data || null));
+    return data;
+  } catch (error) {
+    const message = error.response?.data?.message || 'Failed to fetch payment status';
+    dispatch(setpaymentserror(message));
+    toast.error(message);
+    throw error;
+  }
+};

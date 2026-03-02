@@ -1,4 +1,5 @@
 import { TruckIcon, ClockIcon, CheckCircleIcon, XCircleIcon, ShieldCheckIcon } from '@heroicons/react/24/outline';
+import { useNavigate } from 'react-router-dom';
 
 const statusConfig = {
   PENDING: {
@@ -51,6 +52,7 @@ const timeAgo = (dateStr) => {
 };
 
 const OrderCard = ({ order, onCancel, onView }) => {
+  const navigate = useNavigate();
   const config = statusConfig[order.status] ?? statusConfig.PENDING;
   const StatusIcon = config.icon;
 
@@ -115,15 +117,50 @@ const OrderCard = ({ order, onCancel, onView }) => {
         </div>
       </div>
 
+      {/* Product image thumbnails */}
+      {order.items?.length > 0 && (
+        <div className="flex items-center gap-3 overflow-x-auto pb-1 scrollbar-none">
+          {order.items.map((item, idx) => (
+            <button
+              key={idx}
+              type="button"
+              onClick={() => navigate(`/shop/${item.product}`)}
+              className="group/thumb flex-shrink-0 flex items-center gap-2.5 rounded-xl border border-zinc-800 bg-zinc-900/60 hover:border-cyan-500/50 hover:bg-zinc-900 transition-all duration-200 p-2 pr-3 cursor-pointer"
+              title={`View ${item.title}`}
+            >
+              <div className="size-10 rounded-lg bg-zinc-800 border border-zinc-700 overflow-hidden flex items-center justify-center">
+                {item.images?.[0]?.url || item.images?.[0]?.thumbnail ? (
+                  <img
+                    src={item.images[0].thumbnail || item.images[0].url}
+                    alt={item.title}
+                    className="size-full object-cover"
+                  />
+                ) : (
+                  <span className="text-[10px] text-zinc-500">No img</span>
+                )}
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-xs text-zinc-200 font-medium truncate max-w-[120px] group-hover/thumb:text-cyan-300 transition-colors">
+                  {item.title}
+                </span>
+                <span className="text-[10px] text-zinc-500">x{item.quantity}</span>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+
       <footer className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-zinc-800 mt-1">
         <div className="flex flex-wrap items-center gap-2 text-[11px] text-zinc-500">
           {order.items?.slice(0, 3).map((item, idx) => (
-            <span
+            <button
               key={idx}
-              className="px-2 py-0.5 rounded-full bg-zinc-900 border border-zinc-800 text-zinc-400"
+              type="button"
+              onClick={() => navigate(`/shop/${item.product}`)}
+              className="px-2 py-0.5 rounded-full bg-zinc-900 border border-zinc-800 text-zinc-400 hover:border-cyan-500/50 hover:text-cyan-300 transition-colors cursor-pointer"
             >
               {item.title}
-            </span>
+            </button>
           ))}
           {order.items?.length > 3 && (
             <span className="px-2 py-0.5 rounded-full bg-zinc-900 border border-zinc-800 text-zinc-400">
@@ -132,7 +169,9 @@ const OrderCard = ({ order, onCancel, onView }) => {
           )}
         </div>
         <div className="flex items-center gap-2 justify-end">
-          {onView && (
+          {!(order.paymentStatus === 'COMPLETED') &&
+            order.status !== 'CANCELLED' &&
+            onView && (
             <button
               type="button"
               onClick={() => onView(order)}

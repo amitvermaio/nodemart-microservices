@@ -4,6 +4,60 @@ import { publishToQueue } from '../broker/broker.js';
 
 const CART_SERVICE_URL = process.env.CART_SERVICE_URL || 'http://localhost:4002/api/carts';
 const PRODUCT_SERVICE_URL = process.env.PRODUCT_SERVICE_URL || 'http://localhost:4001/api/products';
+const PAYMENT_SERVICE_URL = process.env.PAYMENT_SERVICE_URL || 'http://localhost:4004/api/payments';
+
+const populateOrders = async (orders, token) => {
+  const productIds = [...new Set(orders.flatMap(o => o.items.map(i => i.product.toString())))];
+
+  const productMap = {};
+
+  await Promise.all(
+    productIds.map(async (pid) => {
+      try {
+        const { data } = await axios.get(`${PRODUCT_SERVICE_URL}/${pid}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        productMap[pid] = data.product;
+      } catch (error) {
+        productMap[pid] = null;
+      }
+    })
+  );
+
+  // payment status of every order 
+  const paymentMap = {};
+  await Promise.all(
+    orders.map(async (order) => {
+      try {
+        const { data } = await axios.get(`${PAYMENT_SERVICE_URL}/status/${order._id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        paymentMap[order._id.toString()] = data.status;
+      } catch {
+        paymentMap[order._id.toString()] = null;
+      }
+    })
+  );
+
+  return orders.map((order) => {
+    const populatedItems = order.items.map((item) => {
+      const product = productMap[item.product.toString()];
+      return {
+        ...item.toObject?.() ?? item, // making mongoose object to plain js object if possible
+        title: product?.title ?? 'Unknown product',
+        description: product?.description ?? '',
+        images: product?.images ?? [],
+        category: product?.category ?? [],
+      };
+    });
+
+    return {
+      ...order.toObject?.() ?? order,
+      items: populatedItems,
+      paymentStatus: paymentMap[order._id.toString()] ?? 'UNKNOWN',
+    };
+  });
+};
 
 export const createOrder = async (req, res) => {
   const user = req.user;
@@ -29,12 +83,11 @@ export const createOrder = async (req, res) => {
     }));
 
     let payableAmount = 0;
-    let orderCurrency = 'USD'; // default, will be set from first product
+    let orderCurrency = 'USD'; 
 
     const orderItems = cartResponse.data.cart.items.map((item, index) => {
       const product = products.find(p => p._id === item.productId);
 
-      // if not in stock, do not allow order creation
       if (product.stock < item.quantity) {
         throw new Error(`Product ${product.title} is out of stock`);
       }
@@ -42,7 +95,7 @@ export const createOrder = async (req, res) => {
       const itemTotal = product.price.amount * item.quantity;
       payableAmount += itemTotal;
 
-      // Use the currency from the first product
+      // Use the currency from the first product as the order currency 
       if (index === 0) {
         orderCurrency = product.price.currency || 'USD';
       }
@@ -92,6 +145,7 @@ export const createOrder = async (req, res) => {
 
 export const getMyOrders = async (req, res) => {
   const user = req.user;
+  const token = req.cookies['NodeMart_Token'] || req.headers?.authorization?.split(' ')[1];
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 10;
   const skip = (page - 1) * limit;
@@ -104,8 +158,10 @@ export const getMyOrders = async (req, res) => {
 
     const totalOrders = await Order.countDocuments({ user: user.id });
 
+    const populatedOrders = await populateOrders(orders, token);
+
     res.status(200).json({
-      orders,
+      orders: populatedOrders,
       meta: {
         page,
         limit,
@@ -122,6 +178,7 @@ export const getMyOrders = async (req, res) => {
 export const getOrderById = async (req, res) => {
   const user = req.user;
   const orderId = req.params.id;
+  const token = req.cookies['NodeMart_Token'] || req.headers?.authorization?.split(' ')[1];
 
   try {
     const order = await Order.findOne({ $and: [{ _id: orderId }, { user: user.id }] });
@@ -130,7 +187,10 @@ export const getOrderById = async (req, res) => {
       return res.status(403).json({ message: 'Forbidden, You do not have access to this order.' })
     }
 
-    res.status(200).json({ order });
+    const result = await populateOrders([order], token);
+    const populatedOrder = result[0];
+
+    res.status(200).json({ order: populatedOrder });
 
   } catch (error) {
     console.error("Error from getOrderById controller");
@@ -192,6 +252,7 @@ export const updateAddress = async (req, res) => {
 
 
 /* SELLER CONTROLLER FUNCTIONS */
+
 export const updateOrderStatus = async (req, res) => {
   const orderId = req.params.id;
   const newStatus = req.body.status;
@@ -211,7 +272,7 @@ export const updateOrderStatus = async (req, res) => {
             headers: { Authorization: `Bearer ${token}` }
           });
           return data.product?.seller === req.user.id;
-        } catch {
+        } catch (error) {
           return false;
         }
       })
