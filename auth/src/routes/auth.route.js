@@ -8,8 +8,11 @@ import {
   addUserAddress,
   makeDefaultAddress,
   deleteUserAddress,
+  forgotPassword,
+  verifyOtp,
+  resetPassword,
 } from '../controllers/auth.controller.js';
-import { registerValidator, loginValidator } from '../middlewares/validator.middleware.js';
+import { registerValidator, loginValidator, forgotPasswordValidator, verifyOtpValidator, resetPasswordValidator } from '../middlewares/validator.middleware.js';
 import { authenticate } from '../middlewares/auth.middleware.js';
 
 const router = express.Router();
@@ -37,5 +40,14 @@ router.patch('/users/me/addresses/:addressId', authenticate, makeDefaultAddress)
 
 // DELETE /api/auth/users/me/addresses/:addressId
 router.delete('/users/me/addresses/:addressId', authenticate, deleteUserAddress);
+
+// POST /api/auth/forgot-password
+router.post('/forgot-password', forgotPasswordValidator, forgotPassword);
+
+// POST /api/auth/verify-otp
+router.post('/verify-otp', verifyOtpValidator, verifyOtp);
+
+// POST /api/auth/reset-password
+router.post('/reset-password', resetPasswordValidator, resetPassword);
 
 export default router;

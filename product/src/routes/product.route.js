@@ -2,7 +2,8 @@ import { Router } from "express";
 import multer from "multer";
 import { authenticate } from '../middlewares/auth.middleware.js';
 import { productsValidation } from '../middlewares/validator.middleware.js';
-import { createProduct, getProducts, getProductById, updateProduct } from "../controllers/product.controller.js";
+import { createProduct, getProducts, getProductById, updateProduct, decreaseStock } from "../controllers/product.controller.js";
+import apiRateLimiter from '../middlewares/rateLimit.middleware.js';
 
 const router = Router();
 
@@ -20,7 +21,16 @@ router.post("/",
 );
 
 /* GET /api/products */
-router.get("/", getProducts);
+router.get("/", 
+  apiRateLimiter, 
+  getProducts
+);
+
+/* POST /api/products/decrease-stock/:orderId */
+router.post("/decrease-stock/:orderId",
+  authenticate(['user']),
+  decreaseStock
+);
 
 /* GET /api/products/:id */
 router.get("/:id", getProductById);

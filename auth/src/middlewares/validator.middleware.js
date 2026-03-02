@@ -76,3 +76,32 @@ export const addressValidator = [
     .withMessage('Phone number is required'),
   validationResultHandler
 ];
+
+export const forgotPasswordValidator = [
+  body('email')
+    .isEmail()
+    .withMessage('A valid email address is required'),
+  validationResultHandler
+];
+
+export const verifyOtpValidator = [
+  body('email')
+    .isEmail()
+    .withMessage('A valid email address is required'),
+  body('otp')
+    .isLength({ min: 6, max: 6 })
+    .withMessage('OTP must be exactly 6 digits')
+    .isNumeric()
+    .withMessage('OTP must contain only numbers'),
+  validationResultHandler
+];
+
+export const resetPasswordValidator = [
+  body('resetToken')
+    .notEmpty()
+    .withMessage('Reset token is required'),
+  body('newPassword')
+    .isLength({ min: 6 })
+    .withMessage('New password must be at least 6 characters long'),
+  validationResultHandler
+];

@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import axios from "axios";
 import Product from "../models/product.model.js";
 import { uploadProductImage } from "../services/azureBlob.service.js";
 import { publishToQueue } from '../broker/broker.js';
@@ -261,6 +262,42 @@ export const getProductsBySeller = async (req, res, next) => {
 
     return res.status(200).json({ products });
   } catch (error) {
+    return res.status(500).json({ message: "Internal server error" });
+  }
+}
 
+export const decreaseStock = async (req, res) => {
+  const { orderId } = req.params;
+  const token =
+    req.cookies?.NodeMart_Token ||
+    req.headers.authorization?.split(' ')[1];
+
+  const ORDER_SERVICE_URL =
+    process.env.ORDER_SERVICE_URL || 'http://localhost:4003/api/orders';
+
+  try {
+    const { data } = await axios.get(`${ORDER_SERVICE_URL}/${orderId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    const items = data?.order?.items;
+    if (!items || items.length === 0) {
+      return res.status(400).json({ message: 'Order has no items' });
+    }
+
+    await Promise.all(
+      items.map((item) =>
+        Product.findByIdAndUpdate(
+          item.product,
+          { $inc: { stock: -item.quantity } },
+          { new: true }
+        )
+      )
+    );
+
+    return res.status(200).json({ message: 'Stock decreased successfully' });
+  } catch (error) {
+    console.error('Decrease stock error:', error?.response?.data || error.message);
+    return res.status(500).json({ message: 'Failed to decrease stock' });
   }
 }

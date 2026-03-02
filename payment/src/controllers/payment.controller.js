@@ -104,15 +104,17 @@ export const verifyPayment = async (req, res) => {
       } catch (queueErr) {
         console.error('Queue publish failed (non-fatal):', queueErr.message);
       }
-      
-      // try {
-      //   // decrease the stock of products in the order
-      //   await axios.post(`${PRODUCT_SERVICE_URL}/decrease-stock/${payment.order}`, {}, {
-      //     headers: { Authorization: `Bearer ${req.cookies?.NodeMart_Token || req.headers.authorization?.split(' ')[1]}` }
-      //   });
-      // } catch (error) {
-      //   console.error('Failed to decrease stock:', error.message);
-      // }`
+
+      try {
+        const authToken = req.cookies?.NodeMart_Token || req.headers.authorization?.split(' ')[1];
+        await axios.post(
+          `${PRODUCT_SERVICE_URL}/decrease-stock/${payment.order}`,
+          {},
+          { headers: { Authorization: `Bearer ${authToken}` } }
+        );
+      } catch (stockErr) {
+        console.error('Failed to decrease stock (non-fatal):', stockErr?.response?.data || stockErr.message);
+      }
     }
 
     res.status(400).json({ success: false });
