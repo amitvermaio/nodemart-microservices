@@ -224,10 +224,9 @@ export const makeDefaultAddress = async (req, res) => {
   }
 }
 
-// ─── Forgot Password Flow ────────────────────────────────────────────
 
-const OTP_EXPIRY_SECONDS = 5 * 60; // 5 minutes
-const RESET_TOKEN_EXPIRY_SECONDS = 10 * 60; // 10 minutes
+const OTP_EXPIRY_SECONDS = 5 * 60;
+const RESET_TOKEN_EXPIRY_SECONDS = 10 * 60;
 
 const generateOtp = () => {
   return crypto.randomInt(100000, 999999).toString();

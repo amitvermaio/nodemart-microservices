@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { asyncfetchsellerdashboard } from '../store/actions/sellerActions';
 import SellerMetrics from '../components/seller/SellerMetrics';
 import SellerOrdersTable from '../components/seller/SellerOrdersTable';
 import SellerTopProducts from '../components/seller/SellerTopProducts';
@@ -7,120 +9,17 @@ import SellerProductsTable from '../components/seller/SellerProductsTable';
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [metrics, setMetrics] = useState(null);
-  const [orders, setOrders] = useState([]);
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error] = useState('');
+  const dispatch = useDispatch();
+  const { metrics, orders, products, inventory, lowStock, status, error } = useSelector((state) => state.seller);
+  const { isAuthenticated, role } = useSelector((state) => state.auth);
+
+  const loading = status === 'loading';
 
   useEffect(() => {
-    const dummyMetrics = {
-      sales: 128,
-      revenue: 184500,
-      topProducts: [
-        { id: 'p1', title: 'Minimalist Standing Desk Setup', sold: 48 },
-        { id: 'p2', title: 'Creator Audio Bundle', sold: 32 },
-        { id: 'p3', title: 'Soft Cotton Oversized Hoodie', sold: 24 },
-      ],
-    };
-
-    const dummyProducts = [
-      {
-        _id: 'p1',
-        title: 'Minimalist Standing Desk Setup',
-        description: 'Electric desk, cable kit and mat for deep-focus work.',
-        price: { amount: 32999, currency: 'INR' },
-        stock: 8,
-      },
-      {
-        _id: 'p2',
-        title: 'Creator Audio Bundle',
-        description: 'Studio mic, arm and headphones tuned for creators.',
-        price: { amount: 21999, currency: 'INR' },
-        stock: 5,
-      },
-      {
-        _id: 'p3',
-        title: 'Soft Cotton Oversized Hoodie',
-        description: 'Premium heavyweight hoodie for long coding sessions.',
-        price: { amount: 4999, currency: 'INR' },
-        stock: 20,
-      },
-    ];
-
-    const dummyOrders = [
-      {
-        _id: 'o1',
-        user: { name: 'Rahul Sharma', email: 'rahul@example.com' },
-        items: [
-          { product: 'p1', quantity: 1 },
-          { product: 'p3', quantity: 2 },
-        ],
-        status: 'CONFIRMED',
-        totalPrice: { amount: 42997, currency: 'INR' },
-        createdAt: new Date().toISOString(),
-      },
-      {
-        _id: 'o2',
-        user: { name: 'Priya Singh', email: 'priya@example.com' },
-        items: [{ product: 'p2', quantity: 1 }],
-        status: 'SHIPPED',
-        totalPrice: { amount: 21999, currency: 'INR' },
-        createdAt: new Date(Date.now() - 86400000).toISOString(),
-      },
-    ];
-
-    // Use a microtask to avoid the linter warning about synchronous setState in effects
-    Promise.resolve().then(() => {
-      setMetrics(dummyMetrics);
-      setProducts(dummyProducts);
-      setOrders(dummyOrders);
-      setLoading(false);
-    });
-
-    // let isMounted = true;
-    //
-    // const fetchJson = async (url) => {
-    //   const res = await fetch(url, { credentials: 'include' });
-    //   if (!res.ok) {
-    //     throw new Error(`Failed to load ${url}`);
-    //   }
-    //   return res.json();
-    // };
-    //
-    // const load = async () => {
-    //   try {
-    //     setLoading(true);
-    //     setError('');
-    //
-    //     const [metricsData, ordersData, productsData] = await Promise.all([
-    //       fetchJson('/api/seller/metrics'),
-    //       fetchJson('/api/seller/orders'),
-    //       fetchJson('/api/seller/products'),
-    //     ]);
-    //
-    //     if (!isMounted) return;
-    //
-    //     setMetrics(metricsData);
-    //     setOrders(Array.isArray(ordersData) ? ordersData : []);
-    //     setProducts(Array.isArray(productsData) ? productsData : []);
-    //   } catch (err) {
-    //     if (!isMounted) return;
-    //     setError('Unable to load dashboard data right now.');
-    //     console.error(err);
-    //   } finally {
-    //     if (isMounted) {
-    //       setLoading(false);
-    //     }
-    //   }
-    // };
-    //
-    // load();
-    //
-    // return () => {
-    //   isMounted = false;
-    // };
-  }, []);
+    if (isAuthenticated && role === 'seller' && status === 'idle') {
+      dispatch(asyncfetchsellerdashboard());
+    }
+  }, [dispatch, isAuthenticated, role, status]);
 
   return (
     <section className="bg-zinc-950 text-zinc-100 min-h-[calc(100vh-4rem)] border-t border-zinc-900/80">
@@ -166,14 +65,14 @@ const Dashboard = () => {
 
         {!loading && !error && (
           <>
-            <SellerMetrics metrics={metrics} products={products} />
+            <SellerMetrics metrics={metrics} inventory={inventory} lowStock={lowStock} />
 
             <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-4 sm:gap-6 mb-6 sm:mb-8">
               <SellerOrdersTable orders={orders} />
               <SellerTopProducts topProducts={metrics?.topProducts} />
             </div>
 
-            <SellerProductsTable products={products} />
+            <SellerProductsTable products={products} lowStock={lowStock} />
           </>
         )}
       </div>

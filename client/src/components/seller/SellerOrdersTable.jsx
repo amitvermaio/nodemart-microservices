@@ -54,10 +54,10 @@ const SellerOrdersTable = ({ orders }) => {
               >
                 <div className="flex flex-col">
                   <span className="text-zinc-100 font-medium truncate">
-                    {order.user?.name || 'Unnamed customer'}
+                    {order.buyer?.fullname || order.buyer?.username || 'Unnamed customer'}
                   </span>
                   <span className="text-[11px] text-zinc-500 truncate">
-                    {order.user?.email || 'No email'}
+                    {order.buyer?.email || 'No email'}
                   </span>
                   {created && (
                     <span className="text-[11px] text-zinc-500">{created}</span>

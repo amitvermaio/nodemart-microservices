@@ -104,12 +104,12 @@ const Signin = () => {
                   />
                   <span>Keep me signed in</span>
                 </label>
-                <button
-                  type="button"
+                <Link
+                  to="/forgot-password"
                   className="text-cyan-300 hover:text-cyan-200 font-medium"
                 >
                   Forgot password?
-                </button>
+                </Link>
               </div>
 
               <button

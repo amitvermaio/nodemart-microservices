@@ -12,31 +12,34 @@ const formatCurrency = (value) => {
   }
 };
 
-const SellerMetrics = ({ metrics, products }) => {
-  const sales = metrics?.sales ?? 0;
-  const revenue = metrics?.revenue ?? 0;
-  const topProductsCount = metrics?.topProducts?.length ?? 0;
-  const productCount = products?.length ?? 0;
+const SellerMetrics = ({ metrics, inventory, lowStock }) => {
+  const totalOrders = metrics?.sales?.totalOrders ?? 0;
+  const totalItemsSold = metrics?.sales?.totalItemsSold ?? 0;
+  const revenue = metrics?.revenue?.total ?? 0;
+  const currency = metrics?.revenue?.currency || 'INR';
+  const totalProducts = inventory?.totalProducts ?? 0;
+  const totalStock = inventory?.totalStock ?? 0;
+  const lowStockCount = lowStock?.count ?? 0;
 
   const cards = [
     {
       label: 'Total sales',
-      hint: 'Items sold across confirmed orders',
-      value: sales.toLocaleString('en-IN'),
+      hint: `${totalOrders} orders • ${totalItemsSold} items sold`,
+      value: totalItemsSold.toLocaleString('en-IN'),
       icon: ArrowTrendingUpIcon,
     },
     {
       label: 'Revenue',
-      hint: 'Approximate gross revenue',
+      hint: `Gross revenue in ${currency}`,
       value: formatCurrency(revenue),
       icon: CurrencyRupeeIcon,
     },
     {
-      label: 'Active products',
-      hint: topProductsCount
-        ? `${productCount} listed • Top ${topProductsCount} highlighted`
-        : `${productCount} listed in catalog`,
-      value: productCount.toString(),
+      label: 'Inventory',
+      hint: lowStockCount
+        ? `${totalStock} units in stock • ${lowStockCount} low-stock`
+        : `${totalStock} units in stock`,
+      value: totalProducts.toString(),
       icon: CubeIcon,
     },
   ];

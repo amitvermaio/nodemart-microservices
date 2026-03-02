@@ -62,7 +62,10 @@ const populateOrders = async (orders, token) => {
 export const createOrder = async (req, res) => {
   const user = req.user;
   const token = req.cookies['NodeMart_Token'] || req.headers?.authorization?.split(' ')[1];
-  const shippingAddress = req.body.shippingAddress;
+  const shippingAddress = {
+    ...req.body.shippingAddress,
+    phone: `+${req.body.phone}`,   // validator ensures 10 digits; model requires E.164
+  };
   try {
     const cartResponse = await axios.get(CART_SERVICE_URL, {
       headers: {

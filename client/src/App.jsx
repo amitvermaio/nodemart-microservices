@@ -25,10 +25,11 @@ const Payment = lazy(() => import('./pages/Payment'));
 const OrderSuccess = lazy(() => import('./pages/OrderSuccess'));
 const Signup = lazy(() => import('./components/auth/Signup'));
 const Signin = lazy(() => import('./components/auth/Signin'));
+const ForgotPassword = lazy(() => import('./components/auth/ForgotPassword'));
 
 const App = () => {
   const dispatch = useDispatch();
-  const { user, status, isAuthenticated, addresses } = useSelector(state => state.auth);
+  const { user, status, isAuthenticated, addresses, role } = useSelector(state => state.auth);
   const { status: cartStatus } = useSelector(state => state.cart);
   useEffect(() => {
     if (!user && status === 'idle') {
@@ -43,10 +44,10 @@ const App = () => {
   }, [dispatch, isAuthenticated, status, addresses.length]);
 
   useEffect(() => {
-    if (isAuthenticated && user && status === 'succeeded' && cartStatus === 'idle') {
+    if (isAuthenticated && user && status === 'succeeded' && cartStatus === 'idle' && role !== 'seller') {
       dispatch(asyncfetchcart());
     }
-  }, [dispatch, isAuthenticated, user, status, cartStatus]);
+  }, [dispatch, isAuthenticated, user, status, cartStatus, role]);
 
   useEffect(() => {
     if (isAuthenticated && user && status==='succeeded') {
@@ -87,6 +88,7 @@ const App = () => {
 
         <Route path="/signup" element={<Signup />} />
         <Route path="/signin" element={<Signin />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
 
         <Route path="*" element={<NotFound />} />
       </Routes>

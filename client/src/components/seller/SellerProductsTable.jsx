@@ -1,5 +1,7 @@
-const SellerProductsTable = ({ products }) => {
+const SellerProductsTable = ({ products, lowStock }) => {
   const list = products?.slice(0, 5) ?? [];
+  const lowStockThreshold = lowStock?.threshold ?? 5;
+  const lowStockIds = new Set((lowStock?.products ?? []).map((p) => p._id || p.productId));
 
   return (
     <section className="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4 sm:p-5 flex flex-col gap-4">
@@ -50,8 +52,15 @@ const SellerProductsTable = ({ products }) => {
                   {currency === 'INR' ? '₹' : '$'}
                   {price.toFixed(0)}
                 </span>
-                <span className="text-right text-zinc-100">
+                <span className={`text-right font-medium ${
+                  lowStockIds.has(product._id) || (product.stock ?? 0) <= lowStockThreshold
+                    ? 'text-amber-400'
+                    : 'text-zinc-100'
+                }`}>
                   {product.stock ?? 0}
+                  {(lowStockIds.has(product._id) || (product.stock ?? 0) <= lowStockThreshold) && (
+                    <span className="text-[10px] text-amber-500 ml-1">low</span>
+                  )}
                 </span>
               </article>
             );

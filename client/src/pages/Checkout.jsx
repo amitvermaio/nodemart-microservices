@@ -10,6 +10,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { asynccreateorder } from '../store/actions/orderActions';
 import { asyncfetchcart } from '../store/actions/cartActions';
+import NewAddressForm from '../components/checkout/NewAddressForm';
 import Loader from '../components/Loader';
 
 const CURRENCY_SYMBOLS = { USD: '$', INR: '₹' };
@@ -39,15 +40,16 @@ const Checkout = () => {
     }
   }, [isAuthenticated, cartItems.length, cartStatus, dispatch, navigate]);
 
-  useEffect(() => {
-    if (addresses.length > 0 && !selectedAddressId) {
-      const def = addresses.find((a) => a.isDefault);
-      setSelectedAddressId(def?._id || def?.id || addresses[0]._id || addresses[0].id);
-    }
-    if (addresses.length === 0) {
-      setUseNewAddress(true);
-    }
-  }, [addresses, selectedAddressId]);
+  // Derive effective address — no setState needed, avoids cascading renders
+  const defaultAddrId = addresses.length > 0
+    ? (addresses.find((a) => a.isDefault)?._id || addresses.find((a) => a.isDefault)?.id || addresses[0]._id || addresses[0].id)
+    : null;
+  const effectiveAddressId = selectedAddressId ?? defaultAddrId;
+  const showNewAddress = useNewAddress || addresses.length === 0;
+
+  // Derive the currency from the first cart item 
+  const cartCurrency = cartItems[0]?.product?.price?.currency || 'USD';
+  const sym = CURRENCY_SYMBOLS[cartCurrency] || '$';
 
   const subtotal = totals?.subtotal ?? 0;
   const shipping = subtotal > 0 ? 2.99 : 0;
@@ -57,7 +59,7 @@ const Checkout = () => {
   const handlePlaceOrder = async (formData) => {
     let shippingAddress;
 
-    if (useNewAddress) {
+    if (showNewAddress) {
       shippingAddress = {
         street: formData.street,
         city: formData.city,
@@ -67,7 +69,7 @@ const Checkout = () => {
       };
     } else {
       const addr = addresses.find(
-        (a) => (a._id || a.id) === selectedAddressId
+        (a) => (a._id || a.id) === effectiveAddressId
       );
       if (!addr) return;
       shippingAddress = {
@@ -79,9 +81,12 @@ const Checkout = () => {
       };
     }
 
+    // E.164 phone: send raw 10-digit number as top-level field (backend validator expects this)
+    const rawPhone = (formData.phone || '').replace(/\D/g, '');
+
     try {
       const order = await dispatch(
-        asynccreateorder({ shippingAddress, phone: formData.phone || '0000000000' })
+        asynccreateorder({ shippingAddress, phone: rawPhone })
       );
       if (order?._id) {
         navigate(`/checkout/payment/${order._id}`);
@@ -197,7 +202,7 @@ const Checkout = () => {
                   <div className="grid gap-2">
                     {addresses.map((addr) => {
                       const id = addr._id || addr.id;
-                      const isSelected = !useNewAddress && selectedAddressId === id;
+                      const isSelected = !showNewAddress && effectiveAddressId === id;
                       return (
                         <label
                           key={id}
@@ -236,7 +241,7 @@ const Checkout = () => {
 
                     <label
                       className={`flex items-center gap-3 rounded-xl border px-4 py-3 cursor-pointer transition-colors ${
-                        useNewAddress
+                        showNewAddress
                           ? 'border-cyan-500/60 bg-cyan-500/5'
                           : 'border-zinc-800 hover:border-zinc-700'
                       }`}
@@ -244,7 +249,7 @@ const Checkout = () => {
                       <input
                         type="radio"
                         name="addressChoice"
-                        checked={useNewAddress}
+                        checked={showNewAddress}
                         onChange={() => setUseNewAddress(true)}
                         className="accent-cyan-400"
                       />
@@ -257,85 +262,11 @@ const Checkout = () => {
               )}
 
               {/* New Address Form */}
-              {useNewAddress && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="sm:col-span-2">
-                    <label className="block text-[11px] text-zinc-500 mb-1">
-                      Street
-                    </label>
-                    <input
-                      {...register('street', { required: useNewAddress })}
-                      placeholder="123 Main St"
-                      className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-cyan-500/60"
-                    />
-                    {errors.street && (
-                      <p className="text-[10px] text-red-400 mt-1">
-                        Street is required
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <label className="block text-[11px] text-zinc-500 mb-1">
-                      City
-                    </label>
-                    <input
-                      {...register('city', { required: useNewAddress })}
-                      placeholder="Bengaluru"
-                      className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-cyan-500/60"
-                    />
-                    {errors.city && (
-                      <p className="text-[10px] text-red-400 mt-1">
-                        City is required
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <label className="block text-[11px] text-zinc-500 mb-1">
-                      State
-                    </label>
-                    <input
-                      {...register('state', { required: useNewAddress })}
-                      placeholder="Karnataka"
-                      className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-cyan-500/60"
-                    />
-                    {errors.state && (
-                      <p className="text-[10px] text-red-400 mt-1">
-                        State is required
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <label className="block text-[11px] text-zinc-500 mb-1">
-                      ZIP Code
-                    </label>
-                    <input
-                      {...register('zip', { required: useNewAddress })}
-                      placeholder="560001"
-                      className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-cyan-500/60"
-                    />
-                    {errors.zip && (
-                      <p className="text-[10px] text-red-400 mt-1">
-                        ZIP is required
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <label className="block text-[11px] text-zinc-500 mb-1">
-                      Country
-                    </label>
-                    <input
-                      {...register('country', { required: useNewAddress })}
-                      placeholder="India"
-                      className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-cyan-500/60"
-                    />
-                    {errors.country && (
-                      <p className="text-[10px] text-red-400 mt-1">
-                        Country is required
-                      </p>
-                    )}
-                  </div>
-                </div>
-              )}
+              <NewAddressForm
+                register={register}
+                errors={errors}
+                visible={showNewAddress}
+              />
 
               {/* Phone */}
               <div>
@@ -346,11 +277,11 @@ const Checkout = () => {
                   {...register('phone', {
                     required: 'Phone is required',
                     pattern: {
-                      value: /^\d{10}$/,
-                      message: 'Must be 10 digits',
+                      value: /^\+?[1-9]\d{1,14}$/,
+                      message: 'Enter a valid phone (e.g. +14155552671)',
                     },
                   })}
-                  placeholder="9876543210"
+                  placeholder="+14155552671"
                   className="w-full sm:w-64 rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-cyan-500/60"
                 />
                 {errors.phone && (
@@ -389,23 +320,23 @@ const Checkout = () => {
               <div className="flex justify-between">
                 <span>Subtotal ({totals?.totalQuantity || 0} items)</span>
                 <span className="text-zinc-100 font-medium">
-                  ₹{subtotal.toFixed(2)}
+                  {sym}{subtotal.toFixed(2)}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span>Shipping</span>
                 <span>
-                  {shipping === 0 ? '—' : `₹${shipping.toFixed(2)}`}
+                  {shipping === 0 ? '—' : `${sym}${shipping.toFixed(2)}`}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span>Tax</span>
-                <span>₹{tax.toFixed(2)}</span>
+                <span>{sym}{tax.toFixed(2)}</span>
               </div>
               <div className="h-px bg-zinc-800 my-2" />
               <div className="flex justify-between text-sm font-medium text-zinc-100">
                 <span>Total</span>
-                <span>₹{total.toFixed(2)}</span>
+                <span>{sym}{total.toFixed(2)}</span>
               </div>
             </div>
 
