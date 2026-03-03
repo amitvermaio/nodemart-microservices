@@ -8,7 +8,7 @@ import { publishToQueue } from '../broker/broker.js';
 const cookieOptions = {
   httpOnly: true,
   secure: true,
-  sameSite: 'Lax',
+  sameSite: 'None',
   maxAge: 7 * 24 * 60 * 60 * 1000
 };
 
@@ -137,7 +137,7 @@ export const logout = async (req, res) => {
     res.clearCookie('NodeMart_Token', {
       httpOnly: true,
       secure: true,
-      sameSite: 'Lax'
+      sameSite: 'None'
     });
 
     res.status(200).json({ message: 'Logged out successfully' });
