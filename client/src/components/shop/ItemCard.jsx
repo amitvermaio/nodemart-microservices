@@ -58,10 +58,10 @@ const ItemCard = ({ product, currency }) => {
     return null;
   }, [product]);
 
-  const productLink = productId ? `/shop/${productId}` : '#';
+  
 
   return (
-    <Link to={productLink} className="block h-full" tabIndex={productId ? 0 : -1}>
+    <Link to={productId ? `/shop/${productId}` : '#'} className="block h-full" tabIndex={productId ? 0 : -1}>
       <article className="group rounded-2xl border border-zinc-800 bg-zinc-900/40 hover:bg-zinc-900 hover:border-cyan-500/50 transition-colors duration-300 flex flex-col overflow-hidden h-full">
         <div className="relative mb-4 w-full aspect-square bg-gradient-to-br from-zinc-900 via-zinc-950 to-black flex items-center justify-center overflow-hidden">
           {primaryImage ? (

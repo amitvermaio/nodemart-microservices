@@ -6,7 +6,7 @@ const initialState = {
   products: [],
   inventory: null,
   lowStock: null,
-  status: 'idle', // idle | loading | succeeded | failed
+  status: 'idle',
   error: null,
 };
 

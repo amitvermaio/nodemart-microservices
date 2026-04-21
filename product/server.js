@@ -1,11 +1,12 @@
 import "dotenv/config";
 import app from "./src/app.js";
 import connectDb from "./src/config/db.js";
+import redis from "./src/config/redis.js";
 import { connectBroker } from './src/broker/broker.js';
 
 const PORT = process.env.PORT || 4001;
 const MAX_RETRIES = 10;
-const RETRY_DELAY = 3000; // 3 seconds
+const RETRY_DELAY = 3000; 
 
 async function startServer() {
   try {

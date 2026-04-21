@@ -5,7 +5,7 @@ import { connectBroker } from './src/broker/broker.js';
 
 const PORT = process.env.PORT || 4004;
 const MAX_RETRIES = 10;
-const RETRY_DELAY = 3000; // 3 seconds
+const RETRY_DELAY = 3000; 
 
 async function startServer() {
   try {
@@ -31,7 +31,6 @@ async function startServer() {
     // Connect to broker (non-blocking)
     await connectBroker();
 
-    // Start server
     app.listen(PORT, () => {
       console.log(`Payment Service is running on port ${PORT}`);
     });

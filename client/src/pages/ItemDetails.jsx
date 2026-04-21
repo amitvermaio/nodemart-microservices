@@ -10,6 +10,7 @@ const ItemDetails = () => {
   const { itemId } = useParams();
   const navigate = useNavigate();
 
+  const isAuthorized = useSelector((state) => state.auth.isAuthorized);
   const product = useSelector((state) => state.products.selected);
   const dispatch = useDispatch();
 
@@ -204,16 +205,6 @@ const ItemDetails = () => {
               <h1 className="font-heading text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-white">
                 {product.title}
               </h1>
-              {product.rating && (
-                <div className="flex items-center gap-2 text-xs text-zinc-400">
-                  <StarIcon className="size-4 text-cyan-300" />
-                  <span className="font-medium text-zinc-100">
-                    {product.rating.toFixed(1)}
-                  </span>
-                  <span>•</span>
-                  <span>In stock</span>
-                </div>
-              )}
               {typeof product.stock === 'number' && product.stock > 0 && (
                 <div className="flex items-center gap-2 mt-1">
                   {product.stock <= 10 && (
@@ -224,7 +215,7 @@ const ItemDetails = () => {
                   <span className={`text-xs font-medium ${product.stock <= 10 ? 'text-amber-400' : 'text-zinc-400'}`}>
                     {product.stock <= 10
                       ? `Only ${product.stock} left in stock — order soon`
-                      : `${product.stock} in stock`}
+                      : `In stock`}
                   </span>
                 </div>
               )}
@@ -278,7 +269,7 @@ const ItemDetails = () => {
 
                 <button
                   type="button"
-                  onClick={handleAddToCart}
+                  onClick={isAuthorized ? handleAddToCart : () => navigate('/signin')}
                   disabled={isOutOfStock}
                   className={`inline-flex items-center justify-center rounded-full px-4 py-2 text-xs font-medium transition-colors ${
                     isOutOfStock

@@ -3,6 +3,7 @@ import axios from "axios";
 import Product from "../models/product.model.js";
 import { uploadProductImage } from "../services/azureBlob.service.js";
 import { publishToQueue } from '../broker/broker.js';
+import redis, { PRODUCT_LIST_PREFIX, PRODUCT_DETAIL_PREFIX, CACHE_TTL } from '../config/redis.js';
 
 const normalizeCategory = (value) => {
   if (!value) {
@@ -67,6 +68,11 @@ export const createProduct = async (req, res, next) => {
 
     await publishToQueue('PRODUCT_SELLER_DASHBOARD.PRODUCT_CREATED', createdProduct);
 
+    const listKeys = await redis.keys(`${PRODUCT_LIST_PREFIX}*`);
+    if (listKeys.length > 0) {
+      await redis.del(...listKeys);
+    }
+
     return res.status(201).json({ data: createdProduct });
   } catch (error) {
     return next(error);
@@ -83,6 +89,13 @@ export const getProducts = async (req, res, next) => {
       skip: skipParam = 0,
       limit: limitParam = 20,
     } = req.query;
+
+    const cacheKey = `${PRODUCT_LIST_PREFIX}q:${q || ''}:min:${minprice || ''}:max:${maxprice || ''}:cat:${category || ''}:skip:${skipParam}:limit:${limitParam}`;
+
+    const cachedData = await redis.get(cacheKey);
+    if (cachedData) {
+      return res.status(200).json(JSON.parse(cachedData));
+    }
 
     const filter = {};
 
@@ -117,9 +130,6 @@ export const getProducts = async (req, res, next) => {
 
     const includeMeta = parsedSkip === 0;
 
-    // Build a separate filter WITHOUT price constraints for computing the
-    // overall min/max price range. This prevents the slider bounds from
-    // shrinking when the user applies a price filter.
     const metaFilter = { ...filter };
     delete metaFilter["price.amount"];
 
@@ -147,7 +157,7 @@ export const getProducts = async (req, res, next) => {
     const stats = priceStats[0] || {};
     const hasMore = parsedSkip + products.length < total;
 
-    return res.status(200).json({
+    const responsePayload = {
       data: products,
       pagination: {
         skip: parsedSkip + products.length,
@@ -164,7 +174,11 @@ export const getProducts = async (req, res, next) => {
           categories: (availableCategories || []).filter(Boolean).sort(),
         }
         : undefined,
-    });
+    };
+
+    await redis.set(cacheKey, JSON.stringify(responsePayload), 'EX', CACHE_TTL);
+
+    return res.status(200).json(responsePayload);
   } catch (error) {
     console.error("Error fetching products:", error);
     return res.status(500).json({ message: "Internal server error" });
@@ -223,6 +237,14 @@ export const updateProduct = async (req, res, next) => {
     }
 
     await product.save();
+
+    // Invalidate product list cache and the specific product detail cache
+    const listKeys = await redis.keys(`${PRODUCT_LIST_PREFIX}*`);
+    if (listKeys.length > 0) {
+      await redis.del(...listKeys);
+    }
+    await redis.del(`${PRODUCT_DETAIL_PREFIX}${id}`);
+
     return res.status(200).json({ message: "Product updated successfully", product });
 
   } catch (error) {
@@ -246,6 +268,14 @@ export const deleteProduct = async (req, res, next) => {
     }
 
     await product.deleteOne();
+
+    // Invalidate product list cache and the specific product detail cache
+    const listKeys = await redis.keys(`${PRODUCT_LIST_PREFIX}*`);
+    if (listKeys.length > 0) {
+      await redis.del(...listKeys);
+    }
+    await redis.del(`${PRODUCT_DETAIL_PREFIX}${id}`);
+
     return res.status(200).json({ message: "Product deleted successfully" });
   } catch (error) {
     return res.status(500).json({ message: "Internal server error" });
